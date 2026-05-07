@@ -38,6 +38,7 @@ interface Props {
   onSelect: (slotId: string | null) => void;
   onCreate: (input: CreateInput) => void;
   onPatch: (slotId: string, patch: PatchInput) => void;
+  onRemove: (slotId: string) => void;
 }
 
 type ResizeHandle = "nw" | "n" | "ne" | "e" | "se" | "s" | "sw" | "w";
@@ -75,6 +76,7 @@ export function SlotLayer({
   onSelect,
   onCreate,
   onPatch,
+  onRemove,
 }: Props) {
   const layerRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{
@@ -307,6 +309,10 @@ export function SlotLayer({
             selected={selected}
             onPointerDown={(e) => onSlotPointerDown(e, slot)}
             onHandleDown={(e, h) => onHandlePointerDown(e, slot, h)}
+            onRemove={() => {
+              onRemove(slot.id);
+              onSelect(null);
+            }}
           />
         );
       })}
@@ -334,6 +340,7 @@ function SlotBox({
   selected,
   onPointerDown,
   onHandleDown,
+  onRemove,
 }: {
   slot: Slot;
   r: FRect;
@@ -341,6 +348,7 @@ function SlotBox({
   selected: boolean;
   onPointerDown: (e: React.PointerEvent) => void;
   onHandleDown: (e: React.PointerEvent, h: ResizeHandle) => void;
+  onRemove: () => void;
 }) {
   return (
     <div
@@ -356,7 +364,7 @@ function SlotBox({
       className={cn(
         "group cursor-move touch-none rounded-[2px] text-[10px]",
         selected
-          ? "bg-[rgba(163,230,53,0.12)] ring-1.5 ring-[var(--color-accent)]"
+          ? "bg-[rgba(163,255,18,0.12)] ring-1.5 ring-[var(--color-accent)]"
           : "bg-black/5 ring-1 ring-black/30 hover:ring-black/55",
       )}
     >
@@ -372,6 +380,26 @@ function SlotBox({
       </div>
       {selected ? (
         <>
+          {/* Delete button overlay (top-right of selected slot) */}
+          <button
+            type="button"
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              onRemove();
+            }}
+            aria-label="Delete slot"
+            className="absolute -right-2.5 -top-2.5 grid h-7 w-7 cursor-pointer place-items-center rounded-full border border-red-500 bg-white text-red-600 shadow-md transition hover:bg-red-500 hover:text-white touch-none"
+          >
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+              <path
+                d="M3 3l6 6M9 3l-6 6"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+              />
+            </svg>
+          </button>
           <Handle pos="nw" onDown={onHandleDown} />
           <Handle pos="n" onDown={onHandleDown} />
           <Handle pos="ne" onDown={onHandleDown} />
