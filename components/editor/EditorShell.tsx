@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import type { Document, Page } from "@/lib/types";
+import { useCallback, useMemo, useState } from "react";
+import type { Document, Page, SlotRole } from "@/lib/types";
 import { useDocument } from "./hooks/useDocument";
 import { useSelection } from "./hooks/useSelection";
+import { useEditorKeyboard } from "./hooks/useKeyboard";
 import { Canvas } from "./Canvas";
 import { SpreadStrip } from "./SpreadStrip";
 import { Toolbar } from "./Toolbar";
@@ -13,12 +14,23 @@ import { GridPanel } from "./panels/GridPanel";
 import { BaselinePanel } from "./panels/BaselinePanel";
 import { SlotPanel } from "./panels/SlotPanel";
 import { TypographyPanel } from "./panels/TypographyPanel";
+import { ExportDialog } from "./dialogs/ExportDialog";
 
 export function EditorShell({ document: initial }: { document: Document }) {
-  const { document, status, patchPageMargins, setGridSpec } =
-    useDocument(initial);
+  const {
+    document,
+    status,
+    patchPageMargins,
+    setGridSpec,
+    setBaselineSpec,
+    createSlot,
+    patchSlot,
+    removeSlot,
+    addSpread,
+  } = useDocument(initial);
+
   const firstPage = document.spreads[0]?.pages[0]?.id ?? null;
-  const { selection, setSpread, setPage } = useSelection({
+  const { selection, setSpread, setPage, setSlot } = useSelection({
     spreadIndex: 0,
     pageId: firstPage,
     slotId: null,
@@ -27,6 +39,10 @@ export function EditorShell({ document: initial }: { document: Document }) {
   const [showGrid, setShowGrid] = useState(true);
   const [showRulers, setShowRulers] = useState(true);
   const [showMargins, setShowMargins] = useState(true);
+  const [showBaseline, setShowBaseline] = useState(true);
+  const [showSlots, setShowSlots] = useState(true);
+  const [defaultRole, setDefaultRole] = useState<SlotRole>("body");
+  const [exportOpen, setExportOpen] = useState(false);
 
   const activeSpread = document.spreads[selection.spreadIndex];
   const activePage: Page | null = useMemo(() => {
@@ -40,6 +56,68 @@ export function EditorShell({ document: initial }: { document: Document }) {
     }
     return activeSpread.pages[0] ?? null;
   }, [activeSpread, selection.pageId]);
+
+  const handleCreateSlot = useCallback(
+    (
+      pageId: string,
+      draft: Parameters<typeof createSlot>[1],
+    ) => {
+      void createSlot(pageId, draft).then((slot) => setSlot(slot.id)).catch(() => {});
+    },
+    [createSlot, setSlot],
+  );
+
+  const handleDuplicateSelected = useCallback(() => {
+    if (!activePage || !selection.slotId) return;
+    const slot = activePage.slots?.find((s) => s.id === selection.slotId);
+    if (!slot) return;
+    const offset = 0.02;
+    if (slot.mode === "free") {
+      void createSlot(activePage.id, {
+        name: `${slot.name} copy`,
+        role: slot.role,
+        mode: "free",
+        x: clamp01((slot.x ?? 0) + offset),
+        y: clamp01((slot.y ?? 0) + offset),
+        w: slot.w,
+        h: slot.h,
+        z_index: slot.z_index,
+      }).catch(() => {});
+    } else {
+      void createSlot(activePage.id, {
+        name: `${slot.name} copy`,
+        role: slot.role,
+        mode: "cell",
+        col_start: slot.col_start,
+        col_end: slot.col_end,
+        row_start: slot.row_start,
+        row_end: slot.row_end,
+        z_index: slot.z_index,
+      }).catch(() => {});
+    }
+  }, [activePage, selection.slotId, createSlot]);
+
+  useEditorKeyboard({
+    onDelete: () => {
+      if (activePage && selection.slotId) {
+        removeSlot(activePage.id, selection.slotId);
+        setSlot(null);
+      }
+    },
+    onDuplicate: handleDuplicateSelected,
+    onEscape: () => setSlot(null),
+    onPrevSpread: () => {
+      if (selection.spreadIndex > 0) setSpread(selection.spreadIndex - 1);
+    },
+    onNextSpread: () => {
+      if (selection.spreadIndex < document.spreads.length - 1)
+        setSpread(selection.spreadIndex + 1);
+    },
+    onToggleGrid: () => setShowGrid((v) => !v),
+    onToggleBaseline: () => setShowBaseline((v) => !v),
+    onToggleRulers: () => setShowRulers((v) => !v),
+    onToggleMargins: () => setShowMargins((v) => !v),
+  });
 
   return (
     <div className="flex h-screen flex-col bg-canvas">
@@ -56,9 +134,14 @@ export function EditorShell({ document: initial }: { document: Document }) {
           showGrid={showGrid}
           showRulers={showRulers}
           showMargins={showMargins}
+          showBaseline={showBaseline}
+          showSlots={showSlots}
           onToggleGrid={() => setShowGrid((v) => !v)}
           onToggleRulers={() => setShowRulers((v) => !v)}
           onToggleMargins={() => setShowMargins((v) => !v)}
+          onToggleBaseline={() => setShowBaseline((v) => !v)}
+          onToggleSlots={() => setShowSlots((v) => !v)}
+          onExport={() => setExportOpen(true)}
         />
       </header>
 
@@ -101,11 +184,19 @@ export function EditorShell({ document: initial }: { document: Document }) {
             showGrid={showGrid}
             showRulers={showRulers}
             showMargins={showMargins}
+            showBaseline={showBaseline}
+            showSlots={showSlots}
+            selectedSlotId={selection.slotId}
+            defaultRole={defaultRole}
+            onSelectSlot={setSlot}
+            onCreateSlot={handleCreateSlot}
+            onPatchSlot={patchSlot}
           />
           <SpreadStrip
             document={document}
             activeIndex={selection.spreadIndex}
             onSelect={(i) => setSpread(i)}
+            onAdd={() => void addSpread()}
           />
         </main>
 
@@ -117,11 +208,32 @@ export function EditorShell({ document: initial }: { document: Document }) {
             onApply={patchPageMargins}
           />
           <GridPanel page={activePage} onChange={setGridSpec} />
-          <BaselinePanel />
-          <SlotPanel />
-          <TypographyPanel />
+          <BaselinePanel page={activePage} onApply={setBaselineSpec} />
+          <SlotPanel
+            page={activePage}
+            selectedSlotId={selection.slotId}
+            defaultRole={defaultRole}
+            onDefaultRoleChange={setDefaultRole}
+            onPatch={patchSlot}
+            onRemove={(pageId, slotId) => {
+              removeSlot(pageId, slotId);
+              setSlot(null);
+            }}
+          />
+          <TypographyPanel
+            page={activePage}
+            selectedSlotId={selection.slotId}
+            onPatch={patchSlot}
+          />
         </aside>
       </div>
+
+      <ExportDialog
+        open={exportOpen}
+        onOpenChange={setExportOpen}
+        document={document}
+        page={activePage}
+      />
     </div>
   );
 }
@@ -151,4 +263,9 @@ function SyncIndicator({
     );
   }
   return null;
+}
+
+function clamp01(v: number): number {
+  if (!Number.isFinite(v)) return 0;
+  return Math.max(0, Math.min(1, v));
 }

@@ -12,13 +12,38 @@ import type {
 } from "@/lib/types";
 import { createClient } from "@/lib/supabase/client";
 import {
+  addSpread as addSpreadQuery,
+  deleteBaseline,
+  deleteSlot as deleteSlotQuery,
+  deleteSpread as deleteSpreadQuery,
+  insertSlot,
+  updateSlot,
+  upsertBaseline,
   upsertGrid,
   updateDocument as updateDocumentQuery,
   updatePageMargins,
+  type SlotPatch,
   type UpdateDocumentPatch,
 } from "@/lib/queries";
 
 // ─── Action types ──────────────────────────────────
+
+type SlotMutationPatch = Partial<{
+  name: Slot["name"];
+  role: Slot["role"];
+  mode: Slot["mode"];
+  col_start: number | null;
+  col_end: number | null;
+  row_start: number | null;
+  row_end: number | null;
+  x: number | null;
+  y: number | null;
+  w: number | null;
+  h: number | null;
+  typography: Slot["typography"] | null;
+  z_index: number;
+  notes: string | null;
+}>;
 
 type Action =
   | { type: "patchDocument"; patch: UpdateDocumentPatch }
@@ -35,7 +60,12 @@ type Action =
   | { type: "removeGrid"; pageId: string }
   | { type: "setBaseline"; pageId: string; baseline: Baseline | null }
   | { type: "addSlot"; pageId: string; slot: Slot }
-  | { type: "patchSlot"; pageId: string; slotId: string; patch: Partial<Slot> }
+  | {
+      type: "patchSlot";
+      pageId: string;
+      slotId: string;
+      patch: SlotMutationPatch;
+    }
   | { type: "removeSlot"; pageId: string; slotId: string };
 
 function reducer(state: Document, action: Action): Document {
@@ -74,7 +104,7 @@ function reducer(state: Document, action: Action): Document {
       return mapPage(state, action.pageId, (p) => ({
         ...p,
         slots: (p.slots ?? []).map((s) =>
-          s.id === action.slotId ? { ...s, ...action.patch } : s,
+          s.id === action.slotId ? mergeSlotPatch(s, action.patch) : s,
         ),
       }));
 
@@ -87,6 +117,16 @@ function reducer(state: Document, action: Action): Document {
     default:
       return state;
   }
+}
+
+function mergeSlotPatch(slot: Slot, patch: SlotMutationPatch): Slot {
+  const next: Record<string, unknown> = { ...slot };
+  for (const k of Object.keys(patch) as Array<keyof SlotMutationPatch>) {
+    const v = patch[k];
+    if (v === null) next[k] = undefined;
+    else if (v !== undefined) next[k] = v;
+  }
+  return next as unknown as Slot;
 }
 
 function mapPage(
@@ -129,6 +169,31 @@ export interface UseDocumentResult {
       color?: "dark" | "light";
     },
   ) => void;
+  createSlot: (
+    pageId: string,
+    draft: {
+      name: string;
+      role: Slot["role"];
+      mode: Slot["mode"];
+      col_start?: number;
+      col_end?: number;
+      row_start?: number;
+      row_end?: number;
+      x?: number;
+      y?: number;
+      w?: number;
+      h?: number;
+      z_index?: number;
+    },
+  ) => Promise<Slot>;
+  patchSlot: (pageId: string, slotId: string, patch: SlotPatch) => void;
+  removeSlot: (pageId: string, slotId: string) => void;
+  setBaselineSpec: (
+    pageId: string,
+    spec: { start: number; increment: number; division: number; color: "dark" | "light" } | null,
+  ) => void;
+  addSpread: () => Promise<void>;
+  removeSpread: (spreadId: string) => Promise<void>;
 }
 
 export function useDocument(initial: Document): UseDocumentResult {
@@ -221,6 +286,149 @@ export function useDocument(initial: Document): UseDocumentResult {
     [document, runAsync],
   );
 
+  const createSlot = useCallback<UseDocumentResult["createSlot"]>(
+    async (pageId, draft) => {
+      const tempId = `temp-slot-${Math.random().toString(36).slice(2, 10)}`;
+      const optimistic: Slot = {
+        id: tempId,
+        page_id: pageId,
+        name: draft.name,
+        role: draft.role,
+        mode: draft.mode,
+        col_start: draft.col_start,
+        col_end: draft.col_end,
+        row_start: draft.row_start,
+        row_end: draft.row_end,
+        x: draft.x,
+        y: draft.y,
+        w: draft.w,
+        h: draft.h,
+        z_index: draft.z_index ?? 0,
+      };
+      dispatch({ type: "addSlot", pageId, slot: optimistic });
+      try {
+        pendingRef.current += 1;
+        setStatus({ pending: pendingRef.current, error: null });
+        const saved = await insertSlot(getSupabase(), {
+          page_id: pageId,
+          name: draft.name,
+          role: draft.role,
+          mode: draft.mode,
+          col_start: draft.col_start ?? null,
+          col_end: draft.col_end ?? null,
+          row_start: draft.row_start ?? null,
+          row_end: draft.row_end ?? null,
+          x: draft.x ?? null,
+          y: draft.y ?? null,
+          w: draft.w ?? null,
+          h: draft.h ?? null,
+          z_index: draft.z_index ?? 0,
+        });
+        // Replace temp with persisted row.
+        dispatch({ type: "removeSlot", pageId, slotId: tempId });
+        dispatch({ type: "addSlot", pageId, slot: saved });
+        return saved;
+      } catch (e) {
+        dispatch({ type: "removeSlot", pageId, slotId: tempId });
+        setStatus({
+          error: e instanceof Error ? e.message : String(e),
+        });
+        throw e;
+      } finally {
+        pendingRef.current = Math.max(0, pendingRef.current - 1);
+        setStatus({ pending: pendingRef.current });
+      }
+    },
+    [],
+  );
+
+  const patchSlotCb = useCallback<UseDocumentResult["patchSlot"]>(
+    (pageId, slotId, patch) => {
+      dispatch({ type: "patchSlot", pageId, slotId, patch });
+      if (slotId.startsWith("temp-")) return;
+      void runAsync(() => updateSlot(getSupabase(), slotId, patch));
+    },
+    [runAsync],
+  );
+
+  const removeSlotCb = useCallback<UseDocumentResult["removeSlot"]>(
+    (pageId, slotId) => {
+      dispatch({ type: "removeSlot", pageId, slotId });
+      if (slotId.startsWith("temp-")) return;
+      void runAsync(() => deleteSlotQuery(getSupabase(), slotId));
+    },
+    [runAsync],
+  );
+
+  const setBaselineSpec = useCallback<UseDocumentResult["setBaselineSpec"]>(
+    (pageId, spec) => {
+      if (spec === null) {
+        dispatch({ type: "setBaseline", pageId, baseline: null });
+        void runAsync(() => deleteBaseline(getSupabase(), pageId));
+        return;
+      }
+      const optimistic: Baseline = {
+        id: `temp-baseline-${pageId}`,
+        page_id: pageId,
+        start: spec.start,
+        increment: spec.increment,
+        division: spec.division,
+        color: spec.color,
+      };
+      dispatch({ type: "setBaseline", pageId, baseline: optimistic });
+      void runAsync(async () => {
+        const saved = await upsertBaseline(getSupabase(), {
+          page_id: pageId,
+          start: spec.start,
+          increment: spec.increment,
+          division: spec.division,
+          color: spec.color,
+        });
+        dispatch({ type: "setBaseline", pageId, baseline: saved });
+      });
+    },
+    [runAsync],
+  );
+
+  const addSpread = useCallback(async () => {
+    pendingRef.current += 1;
+    setStatus({ pending: pendingRef.current, error: null });
+    try {
+      await addSpreadQuery(getSupabase(), document.id, document.facing_pages);
+      // Force a hard reload of the document state via location reload — the
+      // current useReducer state doesn't synthesize ids/page_numbers reliably
+      // for new spreads. v0.5+ can refine this with a proper merge.
+      if (typeof window !== "undefined") {
+        window.location.reload();
+      }
+    } catch (e) {
+      setStatus({
+        error: e instanceof Error ? e.message : String(e),
+      });
+    } finally {
+      pendingRef.current = Math.max(0, pendingRef.current - 1);
+      setStatus({ pending: pendingRef.current });
+    }
+  }, [document.id, document.facing_pages]);
+
+  const removeSpread = useCallback(async (spreadId: string) => {
+    pendingRef.current += 1;
+    setStatus({ pending: pendingRef.current, error: null });
+    try {
+      await deleteSpreadQuery(getSupabase(), spreadId);
+      if (typeof window !== "undefined") {
+        window.location.reload();
+      }
+    } catch (e) {
+      setStatus({
+        error: e instanceof Error ? e.message : String(e),
+      });
+    } finally {
+      pendingRef.current = Math.max(0, pendingRef.current - 1);
+      setStatus({ pending: pendingRef.current });
+    }
+  }, []);
+
   return useMemo(
     () => ({
       document,
@@ -229,6 +437,12 @@ export function useDocument(initial: Document): UseDocumentResult {
       patchPageMargins,
       upsertGridLocal,
       setGridSpec,
+      createSlot,
+      patchSlot: patchSlotCb,
+      removeSlot: removeSlotCb,
+      setBaselineSpec,
+      addSpread,
+      removeSpread,
     }),
     [
       document,
@@ -237,6 +451,12 @@ export function useDocument(initial: Document): UseDocumentResult {
       patchPageMargins,
       upsertGridLocal,
       setGridSpec,
+      createSlot,
+      patchSlotCb,
+      removeSlotCb,
+      setBaselineSpec,
+      addSpread,
+      removeSpread,
     ],
   );
 }

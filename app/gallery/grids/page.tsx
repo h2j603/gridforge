@@ -1,13 +1,29 @@
 import Link from "next/link";
 import { ConfigBanner } from "@/components/ConfigBanner";
-import { isConfigured } from "@/lib/supabase/server";
+import { createClient, isConfigured } from "@/lib/supabase/server";
+import {
+  listGridGallery,
+  type GridGalleryEntry,
+} from "@/lib/queries";
+import { GridGalleryClient } from "./GridGalleryClient";
 
 export const dynamic = "force-dynamic";
 
-export default function GridGalleryPage() {
+export default async function GridGalleryPage() {
+  const configured = isConfigured();
+  let grids: GridGalleryEntry[] = [];
+  if (configured) {
+    try {
+      const supabase = await createClient();
+      grids = await listGridGallery(supabase, 60);
+    } catch {
+      grids = [];
+    }
+  }
+
   return (
     <div className="min-h-screen">
-      <ConfigBanner configured={isConfigured()} />
+      <ConfigBanner configured={configured} />
       <div className="mx-auto max-w-6xl px-6 py-12">
         <Link
           href="/gallery"
@@ -17,11 +33,10 @@ export default function GridGalleryPage() {
         </Link>
         <h1 className="mt-2 text-2xl font-semibold tracking-tight">Grids</h1>
         <p className="mt-1 text-sm text-ink-soft">
-          Reusable grids with descendant counts. Lands in v1.0.
+          Reusable grids saved across documents. Click a grid to apply it to
+          another document.
         </p>
-        <div className="mt-8 rounded-lg border border-dashed border-rule bg-paper p-10 text-center text-sm text-ink-soft">
-          No reusable grids yet.
-        </div>
+        <GridGalleryClient grids={grids} />
       </div>
     </div>
   );
