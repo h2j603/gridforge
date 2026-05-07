@@ -1,4 +1,9 @@
-import type { Document } from "@/lib/types";
+"use client";
+
+import { useMemo, useState } from "react";
+import type { Document, Page } from "@/lib/types";
+import { useDocument } from "./hooks/useDocument";
+import { useSelection } from "./hooks/useSelection";
 import { Canvas } from "./Canvas";
 import { SpreadStrip } from "./SpreadStrip";
 import { Toolbar } from "./Toolbar";
@@ -9,8 +14,33 @@ import { BaselinePanel } from "./panels/BaselinePanel";
 import { SlotPanel } from "./panels/SlotPanel";
 import { TypographyPanel } from "./panels/TypographyPanel";
 
-export function EditorShell({ document }: { document: Document }) {
-  const activeSpread = document.spreads[0];
+export function EditorShell({ document: initial }: { document: Document }) {
+  const { document, status, patchPageMargins, setGridSpec } =
+    useDocument(initial);
+  const firstPage = document.spreads[0]?.pages[0]?.id ?? null;
+  const { selection, setSpread, setPage } = useSelection({
+    spreadIndex: 0,
+    pageId: firstPage,
+    slotId: null,
+  });
+
+  const [showGrid, setShowGrid] = useState(true);
+  const [showRulers, setShowRulers] = useState(true);
+  const [showMargins, setShowMargins] = useState(true);
+
+  const activeSpread = document.spreads[selection.spreadIndex];
+  const activePage: Page | null = useMemo(() => {
+    if (!activeSpread) return null;
+    if (selection.pageId) {
+      return (
+        activeSpread.pages.find((p) => p.id === selection.pageId) ??
+        activeSpread.pages[0] ??
+        null
+      );
+    }
+    return activeSpread.pages[0] ?? null;
+  }, [activeSpread, selection.pageId]);
+
   return (
     <div className="flex h-screen flex-col bg-canvas">
       <header className="flex h-12 items-center justify-between border-b border-rule bg-paper px-4">
@@ -20,29 +50,73 @@ export function EditorShell({ document }: { document: Document }) {
           </a>
           <span className="text-xs text-ink-soft">/</span>
           <span className="text-sm">{document.name}</span>
+          <SyncIndicator pending={status.pending} error={status.error} />
         </div>
-        <Toolbar />
+        <Toolbar
+          showGrid={showGrid}
+          showRulers={showRulers}
+          showMargins={showMargins}
+          onToggleGrid={() => setShowGrid((v) => !v)}
+          onToggleRulers={() => setShowRulers((v) => !v)}
+          onToggleMargins={() => setShowMargins((v) => !v)}
+        />
       </header>
 
       <div className="flex min-h-0 flex-1">
-        <aside className="hidden w-60 shrink-0 border-r border-rule bg-paper md:block">
-          <nav className="flex flex-col p-2 text-sm">
-            <SidebarItem label="Pages" />
-            <SidebarItem label="Grids" />
-            <SidebarItem label="Slots" />
-            <SidebarItem label="References" />
-          </nav>
+        <aside className="hidden w-56 shrink-0 border-r border-rule bg-paper md:flex md:flex-col">
+          <div className="border-b border-rule px-3 py-3 text-[10px] font-semibold uppercase tracking-wide text-ink-soft">
+            Pages
+          </div>
+          <div className="flex-1 overflow-y-auto px-2 py-2">
+            {document.spreads.map((s) =>
+              s.pages.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => {
+                    setSpread(s.index);
+                    setPage(p.id);
+                  }}
+                  className={
+                    "flex w-full items-center justify-between rounded px-2 py-1.5 text-left text-sm" +
+                    (p.id === activePage?.id
+                      ? " bg-canvas font-medium text-ink"
+                      : " text-ink-soft hover:bg-canvas hover:text-ink")
+                  }
+                >
+                  <span>Page {p.page_number}</span>
+                  <span className="text-[10px] uppercase tracking-wide">
+                    {p.side === "single" ? "" : p.side}
+                  </span>
+                </button>
+              )),
+            )}
+          </div>
         </aside>
 
         <main className="relative flex min-w-0 flex-1 flex-col">
-          <Canvas document={document} spread={activeSpread} />
-          <SpreadStrip document={document} />
+          <Canvas
+            document={document}
+            spread={activeSpread}
+            showGrid={showGrid}
+            showRulers={showRulers}
+            showMargins={showMargins}
+          />
+          <SpreadStrip
+            document={document}
+            activeIndex={selection.spreadIndex}
+            onSelect={(i) => setSpread(i)}
+          />
         </main>
 
         <aside className="hidden w-72 shrink-0 overflow-y-auto border-l border-rule bg-paper md:block">
           <PageSetupPanel document={document} />
-          <MarginsPanel document={document} />
-          <GridPanel />
+          <MarginsPanel
+            document={document}
+            page={activePage}
+            onApply={patchPageMargins}
+          />
+          <GridPanel page={activePage} onChange={setGridSpec} />
           <BaselinePanel />
           <SlotPanel />
           <TypographyPanel />
@@ -52,13 +126,29 @@ export function EditorShell({ document }: { document: Document }) {
   );
 }
 
-function SidebarItem({ label }: { label: string }) {
-  return (
-    <button
-      type="button"
-      className="rounded px-2 py-1.5 text-left text-sm text-ink-soft hover:bg-canvas hover:text-ink"
-    >
-      {label}
-    </button>
-  );
+function SyncIndicator({
+  pending,
+  error,
+}: {
+  pending: number;
+  error: string | null;
+}) {
+  if (error) {
+    return (
+      <span
+        className="text-[10px] uppercase tracking-wide text-red-700"
+        title={error}
+      >
+        sync error
+      </span>
+    );
+  }
+  if (pending > 0) {
+    return (
+      <span className="text-[10px] uppercase tracking-wide text-ink-soft">
+        saving…
+      </span>
+    );
+  }
+  return null;
 }
