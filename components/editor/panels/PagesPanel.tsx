@@ -22,7 +22,7 @@ export function PagesPanel({
         <button
           type="button"
           onClick={onAddSpread}
-          className="inline-flex h-9 items-center gap-2 rounded-md border border-dashed border-rule bg-paper-soft px-3 text-sm text-ink hover:border-accent hover:text-accent"
+          className="inline-flex h-9 items-center gap-2 rounded-lg border border-dashed border-rule bg-paper px-3 text-sm text-ink hover:border-[var(--color-accent)] hover:text-[var(--color-accent-strong)]"
         >
           + Add spread
         </button>
@@ -37,8 +37,8 @@ export function PagesPanel({
                 className={cn(
                   "flex w-full items-center justify-between px-4 py-3 text-left text-sm transition",
                   p.id === activePageId
-                    ? "bg-accent-soft text-ink"
-                    : "text-ink hover:bg-paper-soft",
+                    ? "bg-accent-soft text-[var(--color-accent-strong)] shadow-[inset_3px_0_0_0_var(--color-accent)]"
+                    : "text-ink hover:bg-paper-hover",
                 )}
               >
                 <span className="flex items-center gap-3">

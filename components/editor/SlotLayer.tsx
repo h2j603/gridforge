@@ -319,7 +319,7 @@ export function SlotLayer({
 
       {drawRect && (drawRect.w > 0 || drawRect.h > 0) ? (
         <div
-          className="pointer-events-none absolute border-2 border-dashed bg-[rgba(163,230,53,0.1)]"
+          className="pointer-events-none absolute border-2 border-dashed bg-[rgba(255,92,46,0.10)]"
           style={{
             left: drawRect.x * rect.w,
             top: drawRect.y * rect.h,
@@ -364,7 +364,7 @@ function SlotBox({
       className={cn(
         "group cursor-move touch-none rounded-[2px] text-[10px]",
         selected
-          ? "bg-[rgba(163,255,18,0.12)] ring-1.5 ring-[var(--color-accent)]"
+          ? "bg-[rgba(255,92,46,0.10)] ring-1.5 ring-[var(--color-accent)]"
           : "bg-black/5 ring-1 ring-black/30 hover:ring-black/55",
       )}
     >

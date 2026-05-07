@@ -24,7 +24,7 @@ export function Sheet({
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-40 bg-ink/30 backdrop-blur-[2px]" />
+        <Dialog.Overlay className="fixed inset-0 z-40 bg-[var(--color-vivid-ink)]/40 backdrop-blur-[2px]" />
         <Dialog.Content
           className={cn(
             "fixed z-50 flex flex-col border-rule bg-paper text-ink shadow-2xl outline-none",

@@ -27,7 +27,7 @@ export function RulerOverlay({
     <>
       {/* Top ruler */}
       <div
-        className="pointer-events-none absolute -top-5 left-0 flex items-end text-[9px] uppercase tracking-wide text-ink-soft"
+        className="pointer-events-none absolute -top-5 left-0 flex items-end text-[9px] uppercase tracking-wide text-[var(--color-vivid-ink)]/80"
         style={{ width: pagePx.w, height: RULER_THICKNESS }}
       >
         <svg width={pagePx.w} height={RULER_THICKNESS}>
@@ -41,11 +41,11 @@ export function RulerOverlay({
                   x2={x}
                   y1={isMajor ? 4 : 10}
                   y2={RULER_THICKNESS}
-                  stroke="rgba(17,17,17,0.45)"
+                  stroke="rgba(5,46,16,0.6)"
                   strokeWidth={0.5}
                 />
                 {isMajor && t > 0 ? (
-                  <text x={x + 2} y={9} fill="rgba(17,17,17,0.55)">
+                  <text x={x + 2} y={9} fill="rgba(5,46,16,0.85)">
                     {formatLabel(t, document.unit)}
                   </text>
                 ) : null}
@@ -57,7 +57,7 @@ export function RulerOverlay({
 
       {/* Left ruler */}
       <div
-        className="pointer-events-none absolute -left-5 top-0 text-[9px] uppercase tracking-wide text-ink-soft"
+        className="pointer-events-none absolute -left-5 top-0 text-[9px] uppercase tracking-wide text-[var(--color-vivid-ink)]/80"
         style={{ height: pagePx.h, width: RULER_THICKNESS }}
       >
         <svg width={RULER_THICKNESS} height={pagePx.h}>
@@ -71,14 +71,14 @@ export function RulerOverlay({
                   x2={RULER_THICKNESS}
                   y1={y}
                   y2={y}
-                  stroke="rgba(17,17,17,0.45)"
+                  stroke="rgba(5,46,16,0.6)"
                   strokeWidth={0.5}
                 />
                 {isMajor && t > 0 ? (
                   <text
                     x={2}
                     y={y - 2}
-                    fill="rgba(17,17,17,0.55)"
+                    fill="rgba(5,46,16,0.85)"
                     transform={`rotate(-90 2 ${y - 2})`}
                   >
                     {formatLabel(t, document.unit)}
