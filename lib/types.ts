@@ -150,6 +150,13 @@ export interface Reference {
   image_url: string;
   opacity: number;
   visible: boolean;
+  /** Translation as fraction of page width/height. Default 0. */
+  tx: number;
+  ty: number;
+  /** Scale multiplier on top of the page-fit base. Default 1. */
+  scale: number;
+  /** Rotation in degrees. Default 0. */
+  rotation: number;
 }
 
 // ─── Defaults ───────────────────────────────────────
