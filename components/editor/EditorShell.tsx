@@ -2,6 +2,7 @@
 
 import { useCallback, useMemo, useState } from "react";
 import type { Document, Page, SlotRole } from "@/lib/types";
+import { Sheet } from "@/components/ui/Sheet";
 import { useDocument } from "./hooks/useDocument";
 import { useSelection } from "./hooks/useSelection";
 import { useEditorKeyboard } from "./hooks/useKeyboard";
@@ -14,7 +15,10 @@ import { GridPanel } from "./panels/GridPanel";
 import { BaselinePanel } from "./panels/BaselinePanel";
 import { SlotPanel } from "./panels/SlotPanel";
 import { TypographyPanel } from "./panels/TypographyPanel";
+import { ViewPanel } from "./panels/ViewPanel";
+import { PagesPanel } from "./panels/PagesPanel";
 import { ExportDialog } from "./dialogs/ExportDialog";
+import { MobileNav, type MobileTab } from "./MobileNav";
 
 export function EditorShell({ document: initial }: { document: Document }) {
   const {
@@ -41,8 +45,10 @@ export function EditorShell({ document: initial }: { document: Document }) {
   const [showMargins, setShowMargins] = useState(true);
   const [showBaseline, setShowBaseline] = useState(true);
   const [showSlots, setShowSlots] = useState(true);
+  const [snapToGrid, setSnapToGrid] = useState(true);
   const [defaultRole, setDefaultRole] = useState<SlotRole>("body");
   const [exportOpen, setExportOpen] = useState(false);
+  const [mobileTab, setMobileTab] = useState<MobileTab | null>(null);
 
   const activeSpread = document.spreads[selection.spreadIndex];
   const activePage: Page | null = useMemo(() => {
@@ -62,7 +68,10 @@ export function EditorShell({ document: initial }: { document: Document }) {
       pageId: string,
       draft: Parameters<typeof createSlot>[1],
     ) => {
-      void createSlot(pageId, draft).then((slot) => setSlot(slot.id)).catch(() => {});
+      void createSlot(pageId, draft).then((slot) => {
+        setSlot(slot.id);
+        setMobileTab("slot");
+      }).catch(() => {});
     },
     [createSlot, setSlot],
   );
@@ -120,32 +129,40 @@ export function EditorShell({ document: initial }: { document: Document }) {
   });
 
   return (
-    <div className="flex h-screen flex-col bg-canvas">
-      <header className="flex h-12 items-center justify-between border-b border-rule bg-paper px-4">
-        <div className="flex items-center gap-3">
-          <a href="/" className="text-sm font-semibold tracking-tight">
+    <div className="flex h-dvh flex-col bg-canvas">
+      <header className="flex h-12 shrink-0 items-center justify-between border-b border-rule bg-paper px-3 md:px-4">
+        <div className="flex min-w-0 items-center gap-2 md:gap-3">
+          <a
+            href="/"
+            className="text-sm font-semibold tracking-tight"
+            aria-label="GridForge home"
+          >
             GridForge
           </a>
-          <span className="text-xs text-ink-soft">/</span>
-          <span className="text-sm">{document.name}</span>
+          <span className="hidden text-xs text-ink-soft sm:inline">/</span>
+          <span className="truncate text-sm">{document.name}</span>
           <SyncIndicator pending={status.pending} error={status.error} />
         </div>
-        <Toolbar
-          showGrid={showGrid}
-          showRulers={showRulers}
-          showMargins={showMargins}
-          showBaseline={showBaseline}
-          showSlots={showSlots}
-          onToggleGrid={() => setShowGrid((v) => !v)}
-          onToggleRulers={() => setShowRulers((v) => !v)}
-          onToggleMargins={() => setShowMargins((v) => !v)}
-          onToggleBaseline={() => setShowBaseline((v) => !v)}
-          onToggleSlots={() => setShowSlots((v) => !v)}
-          onExport={() => setExportOpen(true)}
-        />
+        {/* Desktop toolbar */}
+        <div className="hidden md:block">
+          <Toolbar
+            showGrid={showGrid}
+            showRulers={showRulers}
+            showMargins={showMargins}
+            showBaseline={showBaseline}
+            showSlots={showSlots}
+            onToggleGrid={() => setShowGrid((v) => !v)}
+            onToggleRulers={() => setShowRulers((v) => !v)}
+            onToggleMargins={() => setShowMargins((v) => !v)}
+            onToggleBaseline={() => setShowBaseline((v) => !v)}
+            onToggleSlots={() => setShowSlots((v) => !v)}
+            onExport={() => setExportOpen(true)}
+          />
+        </div>
       </header>
 
       <div className="flex min-h-0 flex-1">
+        {/* Desktop left sidebar */}
         <aside className="hidden w-56 shrink-0 border-r border-rule bg-paper md:flex md:flex-col">
           <div className="border-b border-rule px-3 py-3 text-[10px] font-semibold uppercase tracking-wide text-ink-soft">
             Pages
@@ -188,18 +205,23 @@ export function EditorShell({ document: initial }: { document: Document }) {
             showSlots={showSlots}
             selectedSlotId={selection.slotId}
             defaultRole={defaultRole}
+            snapToGrid={snapToGrid}
             onSelectSlot={setSlot}
             onCreateSlot={handleCreateSlot}
             onPatchSlot={patchSlot}
           />
-          <SpreadStrip
-            document={document}
-            activeIndex={selection.spreadIndex}
-            onSelect={(i) => setSpread(i)}
-            onAdd={() => void addSpread()}
-          />
+          {/* Spread strip is hidden on small screens — Pages sheet covers it */}
+          <div className="hidden md:block">
+            <SpreadStrip
+              document={document}
+              activeIndex={selection.spreadIndex}
+              onSelect={(i) => setSpread(i)}
+              onAdd={() => void addSpread()}
+            />
+          </div>
         </main>
 
+        {/* Desktop right panel */}
         <aside className="hidden w-72 shrink-0 overflow-y-auto border-l border-rule bg-paper md:block">
           <PageSetupPanel document={document} />
           <MarginsPanel
@@ -227,6 +249,102 @@ export function EditorShell({ document: initial }: { document: Document }) {
           />
         </aside>
       </div>
+
+      {/* Mobile bottom nav */}
+      <MobileNav
+        onOpen={(t) => setMobileTab(t)}
+        onExport={() => setExportOpen(true)}
+      />
+
+      {/* Mobile sheets */}
+      <Sheet
+        open={mobileTab === "pages"}
+        onOpenChange={(o) => setMobileTab(o ? "pages" : null)}
+        title="Pages"
+      >
+        <PagesPanel
+          document={document}
+          activePageId={activePage?.id ?? null}
+          onPick={(idx, pageId) => {
+            setSpread(idx);
+            setPage(pageId);
+            setMobileTab(null);
+          }}
+          onAddSpread={() => {
+            setMobileTab(null);
+            void addSpread();
+          }}
+        />
+      </Sheet>
+      <Sheet
+        open={mobileTab === "grid"}
+        onOpenChange={(o) => setMobileTab(o ? "grid" : null)}
+        title="Grid"
+      >
+        <div className="px-1 py-1">
+          <GridPanel page={activePage} onChange={setGridSpec} />
+          <BaselinePanel page={activePage} onApply={setBaselineSpec} />
+        </div>
+      </Sheet>
+      <Sheet
+        open={mobileTab === "slot"}
+        onOpenChange={(o) => setMobileTab(o ? "slot" : null)}
+        title="Slot"
+      >
+        <div className="px-1 py-1">
+          <SlotPanel
+            page={activePage}
+            selectedSlotId={selection.slotId}
+            defaultRole={defaultRole}
+            onDefaultRoleChange={setDefaultRole}
+            onPatch={patchSlot}
+            onRemove={(pageId, slotId) => {
+              removeSlot(pageId, slotId);
+              setSlot(null);
+            }}
+          />
+          <TypographyPanel
+            page={activePage}
+            selectedSlotId={selection.slotId}
+            onPatch={patchSlot}
+          />
+        </div>
+      </Sheet>
+      <Sheet
+        open={mobileTab === "view"}
+        onOpenChange={(o) => setMobileTab(o ? "view" : null)}
+        title="View"
+        maxHeight="60vh"
+      >
+        <ViewPanel
+          showGrid={showGrid}
+          showRulers={showRulers}
+          showMargins={showMargins}
+          showBaseline={showBaseline}
+          showSlots={showSlots}
+          snapToGrid={snapToGrid}
+          onToggleGrid={() => setShowGrid((v) => !v)}
+          onToggleRulers={() => setShowRulers((v) => !v)}
+          onToggleMargins={() => setShowMargins((v) => !v)}
+          onToggleBaseline={() => setShowBaseline((v) => !v)}
+          onToggleSlots={() => setShowSlots((v) => !v)}
+          onToggleSnap={() => setSnapToGrid((v) => !v)}
+        />
+      </Sheet>
+      <Sheet
+        open={mobileTab === "page-setup"}
+        onOpenChange={(o) => setMobileTab(o ? "page-setup" : null)}
+        title="Document"
+      >
+        <div className="px-1 py-1">
+          <PageSetupPanel document={document} />
+          <MarginsPanel
+            document={document}
+            page={activePage}
+            onApply={patchPageMargins}
+          />
+        </div>
+      </Sheet>
 
       <ExportDialog
         open={exportOpen}

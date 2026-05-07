@@ -1,10 +1,8 @@
 import Link from "next/link";
 import { ConfigBanner } from "@/components/ConfigBanner";
+import { Button } from "@/components/ui/Button";
 import { createClient, isConfigured } from "@/lib/supabase/server";
-import {
-  listGridGallery,
-  type GridGalleryEntry,
-} from "@/lib/queries";
+import { listGridGallery, type GridGalleryEntry } from "@/lib/queries";
 import { GridGalleryClient } from "./GridGalleryClient";
 
 export const dynamic = "force-dynamic";
@@ -22,22 +20,37 @@ export default async function GridGalleryPage() {
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-dvh">
       <ConfigBanner configured={configured} />
-      <div className="mx-auto max-w-6xl px-6 py-12">
-        <Link
-          href="/gallery"
-          className="text-xs text-ink-soft underline-offset-4 hover:underline"
-        >
-          ← Documents
-        </Link>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight">Grids</h1>
-        <p className="mt-1 text-sm text-ink-soft">
-          Reusable grids saved across documents. Click a grid to apply it to
-          another document.
-        </p>
+      <header className="border-b border-rule bg-paper">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3 sm:px-8">
+          <Link href="/" className="text-sm font-semibold tracking-tight">
+            GridForge
+          </Link>
+          <nav className="flex items-center gap-1 text-sm">
+            <Link
+              href="/gallery"
+              className="rounded-md px-2.5 py-1.5 text-ink-soft hover:bg-canvas hover:text-ink"
+            >
+              Documents
+            </Link>
+            <Button asChild size="sm">
+              <Link href="/new">New</Link>
+            </Button>
+          </nav>
+        </div>
+      </header>
+
+      <main className="mx-auto max-w-6xl px-5 py-8 sm:px-8 sm:py-12">
+        <div className="mb-8">
+          <h1 className="text-3xl font-semibold tracking-tight">Grids</h1>
+          <p className="mt-1 text-sm text-ink-soft">
+            Reusable grids saved across documents. Tap one to apply it to
+            another document — its lineage is recorded.
+          </p>
+        </div>
         <GridGalleryClient grids={grids} />
-      </div>
+      </main>
     </div>
   );
 }

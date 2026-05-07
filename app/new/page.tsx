@@ -7,23 +7,25 @@ export const dynamic = "force-dynamic";
 
 export default function NewDocumentPage() {
   return (
-    <div className="min-h-screen">
+    <div className="min-h-dvh">
       <ConfigBanner configured={isConfigured()} />
-      <div className="mx-auto max-w-xl px-6 py-12">
+      <div className="mx-auto max-w-xl px-5 py-8 sm:px-8 sm:py-14">
         <Link
           href="/"
-          className="text-xs text-ink-soft underline-offset-4 hover:underline"
+          className="inline-flex items-center gap-1.5 text-sm text-ink-soft underline-offset-4 hover:text-ink hover:underline"
         >
-          ← Back
+          ← Home
         </Link>
-        <h1 className="mt-4 text-2xl font-semibold tracking-tight">
+        <h1 className="mt-5 text-3xl font-semibold tracking-tight">
           New document
         </h1>
-        <p className="mt-1 mb-8 text-sm text-ink-soft">
-          Define page dimensions and orientation. You can adjust margins,
-          grids, and slots after creation.
+        <p className="mt-2 mb-8 text-sm text-ink-soft">
+          Set page dimensions and orientation. Margins, grid, slots, and
+          baseline can all be tuned in the editor afterwards.
         </p>
-        <NewDocumentForm />
+        <div className="rounded-xl border border-rule bg-paper p-5 sm:p-6">
+          <NewDocumentForm />
+        </div>
       </div>
     </div>
   );

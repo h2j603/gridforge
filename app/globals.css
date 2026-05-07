@@ -1,14 +1,20 @@
 @import "tailwindcss";
 
 @theme {
-  --color-canvas: #f7f7f5;
-  --color-ink: #111111;
-  --color-ink-soft: #4a4a48;
+  --color-canvas: #f4f4f0;
+  --color-canvas-soft: #fafaf7;
+  --color-ink: #0e0e0c;
+  --color-ink-soft: #5a5a55;
+  --color-ink-faint: #8a8a82;
   --color-paper: #ffffff;
-  --color-rule: #d6d6d2;
-  --color-grid-dark: rgba(17, 17, 17, 0.85);
-  --color-grid-light: rgba(17, 17, 17, 0.18);
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --color-rule: #e1e1dc;
+  --color-rule-strong: #c8c8c2;
+  --color-grid-dark: rgba(14, 14, 12, 0.85);
+  --color-grid-light: rgba(14, 14, 12, 0.18);
+  --color-accent: #1f4dff;
+  --font-sans: "Inter", "Pretendard Variable", "Pretendard",
+    ui-sans-serif, system-ui, -apple-system, "Segoe UI", "Helvetica Neue",
+    "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
 }
 
@@ -17,12 +23,18 @@ body {
   height: 100%;
 }
 
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
 body {
   background: var(--color-canvas);
   color: var(--color-ink);
   font-family: var(--font-sans);
+  font-feature-settings: "ss01", "cv11";
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  overscroll-behavior-y: none;
 }
 
 button {
@@ -33,4 +45,45 @@ input,
 select,
 textarea {
   font: inherit;
+}
+
+/* iOS Safari: prevent automatic font enlargement on rotate. */
+input,
+select,
+textarea {
+  font-size: 16px; /* avoids zoom-on-focus on iOS */
+}
+
+@media (min-width: 640px) {
+  input,
+  select,
+  textarea {
+    font-size: 14px;
+  }
+}
+
+/* Subtle radix dialog/sheet animation hooks */
+@keyframes gf-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes gf-slide-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+[data-radix-popper-content-wrapper] {
+  outline: none;
+}
+
+[data-state="open"][data-radix-dialog-overlay] {
+  animation: gf-fade-in 120ms ease;
 }

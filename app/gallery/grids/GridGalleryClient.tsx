@@ -19,30 +19,36 @@ export function GridGalleryClient({ grids }: Props) {
   const [active, setActive] = useState<GridGalleryEntry | null>(null);
   if (grids.length === 0) {
     return (
-      <div className="mt-8 rounded-lg border border-dashed border-rule bg-paper p-10 text-center text-sm text-ink-soft">
-        No reusable grids yet. Create grids in any document and they'll appear
-        here.
+      <div className="rounded-xl border border-dashed border-rule bg-paper px-6 py-16 text-center">
+        <p className="text-sm">No reusable grids yet.</p>
+        <p className="mt-1 text-xs text-ink-soft">
+          Create a grid in any document and it will appear here.
+        </p>
       </div>
     );
   }
   return (
     <>
-      <ul className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {grids.map((g) => (
           <li key={g.id}>
             <button
               type="button"
               onClick={() => setActive(g)}
-              className="block w-full rounded-lg border border-rule bg-paper p-4 text-left transition hover:border-ink"
+              className="group block w-full overflow-hidden rounded-xl border border-rule bg-paper text-left transition hover:-translate-y-0.5 hover:border-ink hover:shadow-md"
             >
-              <div className="text-sm font-medium">
-                {g.cols} × {g.rows} {g.type}
+              <div className="grid aspect-[4/3] place-items-center bg-canvas p-6">
+                <GridPreview cols={g.cols} rows={g.rows} />
               </div>
-              <div className="mt-1 text-xs text-ink-soft">
-                from {g.document_name} ({g.width} × {g.height} {g.unit}) ·
-                {" "}
-                {g.descendant_count} reuse
-                {g.descendant_count === 1 ? "" : "s"}
+              <div className="border-t border-rule px-4 py-3">
+                <div className="text-sm font-medium">
+                  {g.cols} × {g.rows}{" "}
+                  <span className="text-ink-soft">{g.type}</span>
+                </div>
+                <div className="mt-0.5 text-xs text-ink-soft">
+                  from {g.document_name} · {g.descendant_count} reuse
+                  {g.descendant_count === 1 ? "" : "s"}
+                </div>
               </div>
             </button>
           </li>
@@ -54,6 +60,44 @@ export function GridGalleryClient({ grids }: Props) {
         onOpenChange={(o) => !o && setActive(null)}
       />
     </>
+  );
+}
+
+function GridPreview({ cols, rows }: { cols: number; rows: number }) {
+  return (
+    <svg viewBox="0 0 100 75" className="h-24 w-32" role="presentation">
+      <rect
+        x="0.5"
+        y="0.5"
+        width="99"
+        height="74"
+        fill="white"
+        stroke="#c8c8c2"
+        strokeWidth="0.5"
+      />
+      {Array.from({ length: cols + 1 }, (_, i) => i).map((i) => (
+        <line
+          key={`v-${i}`}
+          x1={(i / cols) * 100}
+          x2={(i / cols) * 100}
+          y1={0}
+          y2={75}
+          stroke="rgba(14,14,12,0.45)"
+          strokeWidth="0.4"
+        />
+      ))}
+      {Array.from({ length: rows + 1 }, (_, i) => i).map((i) => (
+        <line
+          key={`h-${i}`}
+          x1={0}
+          x2={100}
+          y1={(i / rows) * 75}
+          y2={(i / rows) * 75}
+          stroke="rgba(14,14,12,0.45)"
+          strokeWidth="0.4"
+        />
+      ))}
+    </svg>
   );
 }
 
@@ -116,16 +160,20 @@ function ApplyGridDialog({
       }}
     >
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-40 bg-ink/30" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[min(92vw,520px)] -translate-x-1/2 -translate-y-1/2 rounded-lg border border-rule bg-paper p-5 shadow-xl">
-          <Dialog.Title className="text-sm font-semibold tracking-tight">
-            Apply grid {grid ? `(${grid.cols}×${grid.rows} ${grid.type})` : ""}
+        <Dialog.Overlay className="fixed inset-0 z-40 bg-ink/40 backdrop-blur-[2px]" />
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[min(92vw,520px)] -translate-x-1/2 -translate-y-1/2 rounded-xl border border-rule bg-paper p-5 shadow-2xl">
+          <Dialog.Title className="text-base font-semibold tracking-tight">
+            Apply grid{" "}
+            {grid ? (
+              <span className="text-ink-soft">
+                ({grid.cols}×{grid.rows} {grid.type})
+              </span>
+            ) : null}
           </Dialog.Title>
-          <Dialog.Description className="mt-1 text-xs text-ink-soft">
-            Choose a target document. The grid lands on its first page; older
-            grids on that page are replaced.
+          <Dialog.Description className="mt-1 text-sm text-ink-soft">
+            Choose a target document. The grid lands on its first page.
           </Dialog.Description>
-          <ul className="mt-3 max-h-[50vh] divide-y divide-rule overflow-y-auto rounded border border-rule">
+          <ul className="mt-4 max-h-[50vh] divide-y divide-rule overflow-y-auto rounded-lg border border-rule">
             {docs === null ? (
               <li className="px-3 py-3 text-sm text-ink-soft">Loading…</li>
             ) : docs.length === 0 ? (
@@ -134,10 +182,13 @@ function ApplyGridDialog({
               </li>
             ) : (
               docs.map((d) => (
-                <li key={d.id} className="flex items-center justify-between px-3 py-2">
-                  <div>
-                    <div className="text-sm">{d.name}</div>
-                    <div className="text-[10px] text-ink-soft">
+                <li
+                  key={d.id}
+                  className="flex items-center justify-between px-3 py-2.5"
+                >
+                  <div className="min-w-0">
+                    <div className="truncate text-sm">{d.name}</div>
+                    <div className="text-[11px] text-ink-soft">
                       {d.width} × {d.height} {d.unit}
                     </div>
                   </div>

@@ -45,6 +45,7 @@ interface Props {
   showSlots: boolean;
   selectedSlotId: string | null;
   defaultRole: SlotRole;
+  snapToGrid: boolean;
   onSelectSlot?: (slotId: string | null) => void;
   onCreateSlot?: (
     pageId: string,
@@ -64,6 +65,7 @@ export function PageBoard({
   showSlots,
   selectedSlotId,
   defaultRole,
+  snapToGrid,
   onSelectSlot,
   onCreateSlot,
   onPatchSlot,
@@ -131,6 +133,7 @@ export function PageBoard({
             page={page}
             rect={contentRect}
             selectedSlotId={selectedSlotId}
+            snapToGrid={snapToGrid}
             onSelect={onSelectSlot}
             onCreate={handleCreate}
             onPatch={(slotId, patch) => onPatchSlot(page.id, slotId, patch)}

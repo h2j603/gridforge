@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { Grid, Page, Slot, SlotRole } from "@/lib/types";
+import type { Grid, Page, Slot } from "@/lib/types";
 import { cn } from "@/lib/cn";
 import { slotPx, snapToGridCells } from "@/lib/geometry";
 
@@ -33,6 +33,8 @@ interface Props {
   page: Page;
   rect: { x: number; y: number; w: number; h: number };
   selectedSlotId: string | null;
+  /** When false, new draws go straight to free mode (Alt-equivalent for touch). */
+  snapToGrid: boolean;
   onSelect: (slotId: string | null) => void;
   onCreate: (input: CreateInput) => void;
   onPatch: (slotId: string, patch: PatchInput) => void;
@@ -69,17 +71,21 @@ export function SlotLayer({
   page,
   rect,
   selectedSlotId,
+  snapToGrid,
   onSelect,
   onCreate,
   onPatch,
 }: Props) {
   const layerRef = useRef<HTMLDivElement>(null);
-  const dragRef = useRef<DragState | null>(null);
+  const dragRef = useRef<{
+    drag: DragState | null;
+    pointerId: number | null;
+    altPressed: boolean;
+  }>({ drag: null, pointerId: null, altPressed: false });
   const previewRef = useRef<{
     drawRect: FRect | null;
     movedRect: { slotId: string; rect: FRect } | null;
-    altPressed: boolean;
-  }>({ drawRect: null, movedRect: null, altPressed: false });
+  }>({ drawRect: null, movedRect: null });
   const [, force] = useState(0);
   const tick = () => force((n) => (n + 1) & 0xffff);
 
@@ -107,13 +113,16 @@ export function SlotLayer({
     return () => window.removeEventListener("keydown", onKey);
   }, [onSelect]);
 
-  // Window listeners installed once.
+  // Pointer move/up at the window level so drags survive crossing the layer
+  // boundary. Pointer Events handle mouse + touch + pen in a single API.
   useEffect(() => {
-    const onMove = (e: MouseEvent) => {
-      const drag = dragRef.current;
-      if (!drag) return;
-      previewRef.current.altPressed = e.altKey;
+    const onMove = (e: PointerEvent) => {
+      const state = dragRef.current;
+      if (!state.drag || state.pointerId !== e.pointerId) return;
+      e.preventDefault();
+      state.altPressed = e.altKey || state.altPressed;
       const { x, y } = localPos(e);
+      const drag = state.drag;
       if (drag.kind === "draw") {
         previewRef.current.drawRect = normalizeRect(
           drag.startX,
@@ -141,14 +150,18 @@ export function SlotLayer({
       tick();
     };
 
-    const onUp = (e: MouseEvent) => {
-      const drag = dragRef.current;
-      if (!drag) return;
-      const altPressed = e.altKey || previewRef.current.altPressed;
+    const onUp = (e: PointerEvent) => {
+      const state = dragRef.current;
+      if (!state.drag || state.pointerId !== e.pointerId) return;
+      const drag = state.drag;
+      // touch always reports altKey=false; the user controls "free draw"
+      // through the snapToGrid prop instead.
+      const altPressed = e.altKey || state.altPressed;
+      const wantFree = !snapToGrid || altPressed;
       if (drag.kind === "draw") {
         const r = previewRef.current.drawRect;
         if (r && r.w > 0.005 && r.h > 0.005) {
-          if (!grid || altPressed) {
+          if (!grid || wantFree) {
             onCreate({ mode: "free", x: r.x, y: r.y, w: r.w, h: r.h });
           } else {
             const range = snapToGridCells(grid, r);
@@ -160,7 +173,7 @@ export function SlotLayer({
         if (moved) {
           const slot = slots.find((s) => s.id === drag.slotId);
           const stayCell =
-            slot && grid && slot.mode === "cell" && !altPressed;
+            slot && grid && slot.mode === "cell" && !wantFree;
           if (stayCell) {
             const range = snapToGridCells(grid, moved.rect);
             onPatch(drag.slotId, {
@@ -189,70 +202,78 @@ export function SlotLayer({
           }
         }
       }
-      dragRef.current = null;
-      previewRef.current = {
-        drawRect: null,
-        movedRect: null,
-        altPressed: false,
-      };
+      dragRef.current = { drag: null, pointerId: null, altPressed: false };
+      previewRef.current = { drawRect: null, movedRect: null };
       tick();
     };
 
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseup", onUp);
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
     return () => {
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("mouseup", onUp);
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
     };
-  }, [grid, localPos, onCreate, onPatch, slots]);
+  }, [grid, localPos, onCreate, onPatch, slots, snapToGrid]);
 
-  const onLayerMouseDown = (e: React.MouseEvent) => {
-    if (e.button !== 0) return;
+  const startDrag = (
+    e: React.PointerEvent,
+    drag: DragState,
+  ) => {
+    if (e.button !== undefined && e.button !== 0 && e.pointerType === "mouse")
+      return;
+    (e.currentTarget as Element).setPointerCapture?.(e.pointerId);
+    dragRef.current = {
+      drag,
+      pointerId: e.pointerId,
+      altPressed: e.altKey,
+    };
+  };
+
+  const onLayerPointerDown = (e: React.PointerEvent) => {
     if (e.target !== layerRef.current) return;
     onSelect(null);
     const { x, y } = localPos(e);
-    dragRef.current = { kind: "draw", startX: x, startY: y };
-    previewRef.current.drawRect = { x, y, w: 0, h: 0 };
-    previewRef.current.altPressed = e.altKey;
     e.preventDefault();
+    previewRef.current.drawRect = { x, y, w: 0, h: 0 };
+    startDrag(e, { kind: "draw", startX: x, startY: y });
     tick();
   };
 
-  const onSlotMouseDown = (e: React.MouseEvent, slot: Slot) => {
-    if (e.button !== 0) return;
+  const onSlotPointerDown = (e: React.PointerEvent, slot: Slot) => {
     e.stopPropagation();
     onSelect(slot.id);
     const { x, y } = localPos(e);
     const r = renderRect(slot, grid);
     if (!r) return;
-    dragRef.current = {
+    startDrag(e, {
       kind: "move",
       slotId: slot.id,
       originX: x,
       originY: y,
       slotStart: r,
-    };
+    });
   };
 
-  const onHandleDown = (
-    e: React.MouseEvent,
+  const onHandlePointerDown = (
+    e: React.PointerEvent,
     slot: Slot,
     handle: ResizeHandle,
   ) => {
-    if (e.button !== 0) return;
     e.stopPropagation();
     onSelect(slot.id);
     const { x, y } = localPos(e);
     const r = renderRect(slot, grid);
     if (!r) return;
-    dragRef.current = {
+    startDrag(e, {
       kind: "resize",
       slotId: slot.id,
       handle,
       originX: x,
       originY: y,
       slotStart: r,
-    };
+    });
   };
 
   const drawRect = previewRef.current.drawRect;
@@ -260,8 +281,8 @@ export function SlotLayer({
   return (
     <div
       ref={layerRef}
-      onMouseDown={onLayerMouseDown}
-      className="absolute"
+      onPointerDown={onLayerPointerDown}
+      className="absolute touch-none"
       style={{
         left: rect.x,
         top: rect.y,
@@ -284,13 +305,13 @@ export function SlotLayer({
             r={r}
             rect={rect}
             selected={selected}
-            onMouseDown={(e) => onSlotMouseDown(e, slot)}
-            onHandleDown={(e, h) => onHandleDown(e, slot, h)}
+            onPointerDown={(e) => onSlotPointerDown(e, slot)}
+            onHandleDown={(e, h) => onHandlePointerDown(e, slot, h)}
           />
         );
       })}
 
-      {drawRect ? (
+      {drawRect && (drawRect.w > 0 || drawRect.h > 0) ? (
         <div
           className="pointer-events-none absolute border-2 border-dashed border-ink/70 bg-ink/5"
           style={{
@@ -310,19 +331,19 @@ function SlotBox({
   r,
   rect,
   selected,
-  onMouseDown,
+  onPointerDown,
   onHandleDown,
 }: {
   slot: Slot;
   r: FRect;
   rect: { w: number; h: number };
   selected: boolean;
-  onMouseDown: (e: React.MouseEvent) => void;
-  onHandleDown: (e: React.MouseEvent, h: ResizeHandle) => void;
+  onPointerDown: (e: React.PointerEvent) => void;
+  onHandleDown: (e: React.PointerEvent, h: ResizeHandle) => void;
 }) {
   return (
     <div
-      onMouseDown={onMouseDown}
+      onPointerDown={onPointerDown}
       style={{
         position: "absolute",
         left: r.x * rect.w,
@@ -332,7 +353,7 @@ function SlotBox({
         zIndex: 1 + (slot.z_index ?? 0),
       }}
       className={cn(
-        "group cursor-move rounded-[2px] text-[10px]",
+        "group cursor-move touch-none rounded-[2px] text-[10px]",
         selected
           ? "bg-ink/15 ring-1 ring-ink"
           : "bg-ink/5 ring-1 ring-ink/30 hover:ring-ink/60",
@@ -362,7 +383,7 @@ function Handle({
   onDown,
 }: {
   pos: ResizeHandle;
-  onDown: (e: React.MouseEvent, h: ResizeHandle) => void;
+  onDown: (e: React.PointerEvent, h: ResizeHandle) => void;
 }) {
   const placement: Record<ResizeHandle, string> = {
     nw: "left-0 top-0 -translate-x-1/2 -translate-y-1/2 cursor-nwse-resize",
@@ -376,12 +397,16 @@ function Handle({
   };
   return (
     <span
-      onMouseDown={(e) => onDown(e, pos)}
+      onPointerDown={(e) => onDown(e, pos)}
       className={cn(
-        "absolute h-2 w-2 rounded-sm border border-ink bg-paper",
+        // Larger touch target on small screens (Apple HIG min 44px-ish);
+        // visual inner box stays small.
+        "absolute flex h-5 w-5 items-center justify-center touch-none",
         placement[pos],
       )}
-    />
+    >
+      <span className="block h-2 w-2 rounded-sm border border-ink bg-paper" />
+    </span>
   );
 }
 
@@ -448,6 +473,3 @@ function clamp01(v: number): number {
   if (!Number.isFinite(v)) return 0;
   return Math.max(0, Math.min(1, v));
 }
-
-// SlotRole import kept for callers; not used directly in this layer.
-export type { SlotRole };
