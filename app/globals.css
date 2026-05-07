@@ -13,11 +13,11 @@
   --color-rule: #e3e2dc;
   --color-rule-strong: #c8c7c0;
 
-  /* Lime accent */
-  --color-accent: #84cc16; /* lime-500 — good contrast on white */
-  --color-accent-strong: #65a30d; /* lime-600 — for text/hover */
-  --color-accent-ink: #1a2607; /* dark green text on accent fill */
-  --color-accent-soft: rgba(132, 204, 22, 0.14);
+  /* Lime accent — vivid, high saturation */
+  --color-accent: #a3ff12;        /* bright neon lime — chip / fill / border */
+  --color-accent-strong: #58a300; /* darker lime — text on light backgrounds */
+  --color-accent-ink: #0a1502;    /* near-black green — text on lime fill */
+  --color-accent-soft: rgba(163, 255, 18, 0.20);
 
   /* Print page (stays white — accuracy matters for export) */
   --color-page: #ffffff;

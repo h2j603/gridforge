@@ -101,6 +101,18 @@ function SelectedSlot({
 
   return (
     <div className="flex flex-col gap-3 border-t border-rule pt-3">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[11px] font-medium uppercase tracking-wide text-ink-faint">
+          Selected slot
+        </span>
+        <Button
+          variant="danger"
+          size="sm"
+          onClick={() => onRemove(page.id, slot.id)}
+        >
+          Delete
+        </Button>
+      </div>
       <Field label="Name" htmlFor={`slot-name-${slot.id}`}>
         <Input
           id={`slot-name-${slot.id}`}
@@ -142,14 +154,6 @@ function SelectedSlot({
       </Field>
 
       <SlotGeometry slot={slot} />
-
-      <Button
-        variant="secondary"
-        size="sm"
-        onClick={() => onRemove(page.id, slot.id)}
-      >
-        Delete slot
-      </Button>
     </div>
   );
 }

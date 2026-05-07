@@ -52,6 +52,7 @@ interface Props {
     draft: CreateInput & { name: string; role: SlotRole; z_index?: number },
   ) => void;
   onPatchSlot?: (pageId: string, slotId: string, patch: PatchInput) => void;
+  onRemoveSlot?: (pageId: string, slotId: string) => void;
 }
 
 export function PageBoard({
@@ -69,6 +70,7 @@ export function PageBoard({
   onSelectSlot,
   onCreateSlot,
   onPatchSlot,
+  onRemoveSlot,
 }: Props) {
   const wPx = toPx(document.width, document.unit, VIEW_DPI) * scale;
   const hPx = toPx(document.height, document.unit, VIEW_DPI) * scale;
@@ -137,6 +139,7 @@ export function PageBoard({
             onSelect={onSelectSlot}
             onCreate={handleCreate}
             onPatch={(slotId, patch) => onPatchSlot(page.id, slotId, patch)}
+            onRemove={(slotId) => onRemoveSlot?.(page.id, slotId)}
           />
         ) : null}
 

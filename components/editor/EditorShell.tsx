@@ -209,6 +209,10 @@ export function EditorShell({ document: initial }: { document: Document }) {
             onSelectSlot={setSlot}
             onCreateSlot={handleCreateSlot}
             onPatchSlot={patchSlot}
+            onRemoveSlot={(pageId, slotId) => {
+              removeSlot(pageId, slotId);
+              setSlot(null);
+            }}
           />
           {/* Spread strip is hidden on small screens — Pages sheet covers it */}
           <div className="hidden md:block">

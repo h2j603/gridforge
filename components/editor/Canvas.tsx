@@ -48,6 +48,7 @@ interface Props {
     draft: CreateInput & { name: string; role: SlotRole; z_index?: number },
   ) => void;
   onPatchSlot: (pageId: string, slotId: string, patch: PatchInput) => void;
+  onRemoveSlot: (pageId: string, slotId: string) => void;
 }
 
 export function Canvas({
@@ -64,6 +65,7 @@ export function Canvas({
   onSelectSlot,
   onCreateSlot,
   onPatchSlot,
+  onRemoveSlot,
 }: Props) {
   // Auto-fit scale based on viewport. Recomputes on resize.
   const containerRef = useRef<HTMLDivElement>(null);
@@ -125,6 +127,7 @@ export function Canvas({
               onSelectSlot={onSelectSlot}
               onCreateSlot={onCreateSlot}
               onPatchSlot={onPatchSlot}
+              onRemoveSlot={onRemoveSlot}
             />
           ))}
         </div>

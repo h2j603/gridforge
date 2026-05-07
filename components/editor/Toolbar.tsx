@@ -65,7 +65,7 @@ function Toggle({
       className={cn(
         "h-8 rounded px-2 text-xs font-medium transition",
         active
-          ? "bg-accent-soft text-accent shadow-[inset_0_0_0_1px_var(--color-accent)]"
+          ? "bg-accent-soft text-accent-strong shadow-[inset_0_0_0_1px_var(--color-accent)]"
           : "text-ink-soft hover:bg-paper-soft hover:text-ink",
       )}
     >
