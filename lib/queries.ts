@@ -486,3 +486,340 @@ export async function deleteGrid(
   const { error } = await supabase.from("grids").delete().eq("page_id", pageId);
   if (error) throw new Error(error.message);
 }
+
+// ─── Slots ──────────────────────────────────────────
+
+export interface SlotInsertInput {
+  page_id: string;
+  name: string;
+  role: SlotRole;
+  mode: SlotMode;
+  col_start?: number | null;
+  col_end?: number | null;
+  row_start?: number | null;
+  row_end?: number | null;
+  x?: number | null;
+  y?: number | null;
+  w?: number | null;
+  h?: number | null;
+  typography?: SlotTypography | null;
+  z_index?: number;
+  notes?: string | null;
+}
+
+export async function insertSlot(
+  supabase: SupabaseClient,
+  input: SlotInsertInput,
+): Promise<Slot> {
+  const { data, error } = await supabase
+    .from("slots")
+    .insert({
+      page_id: input.page_id,
+      name: input.name,
+      role: input.role,
+      mode: input.mode,
+      col_start: input.col_start ?? null,
+      col_end: input.col_end ?? null,
+      row_start: input.row_start ?? null,
+      row_end: input.row_end ?? null,
+      x: input.x ?? null,
+      y: input.y ?? null,
+      w: input.w ?? null,
+      h: input.h ?? null,
+      typography: input.typography ?? null,
+      z_index: input.z_index ?? 0,
+      notes: input.notes ?? null,
+    })
+    .select("*")
+    .single<SlotRow>();
+  if (error || !data) {
+    throw new Error(error?.message ?? "Failed to create slot");
+  }
+  return mapSlot(data);
+}
+
+export interface SlotPatch {
+  name?: string;
+  role?: SlotRole;
+  mode?: SlotMode;
+  col_start?: number | null;
+  col_end?: number | null;
+  row_start?: number | null;
+  row_end?: number | null;
+  x?: number | null;
+  y?: number | null;
+  w?: number | null;
+  h?: number | null;
+  typography?: SlotTypography | null;
+  z_index?: number;
+  notes?: string | null;
+}
+
+export async function updateSlot(
+  supabase: SupabaseClient,
+  slotId: string,
+  patch: SlotPatch,
+): Promise<void> {
+  const { error } = await supabase.from("slots").update(patch).eq("id", slotId);
+  if (error) throw new Error(error.message);
+}
+
+export async function deleteSlot(
+  supabase: SupabaseClient,
+  slotId: string,
+): Promise<void> {
+  const { error } = await supabase.from("slots").delete().eq("id", slotId);
+  if (error) throw new Error(error.message);
+}
+
+// ─── Baselines ──────────────────────────────────────
+
+export interface BaselineUpsertInput {
+  page_id: string;
+  start: number;
+  increment: number;
+  division: number;
+  color: "dark" | "light";
+}
+
+export async function upsertBaseline(
+  supabase: SupabaseClient,
+  input: BaselineUpsertInput,
+): Promise<Baseline> {
+  const { data, error } = await supabase
+    .from("baselines")
+    .upsert(input, { onConflict: "page_id" })
+    .select("*")
+    .single<BaselineRow>();
+  if (error || !data) {
+    throw new Error(error?.message ?? "Failed to save baseline");
+  }
+  return mapBaseline(data);
+}
+
+export async function deleteBaseline(
+  supabase: SupabaseClient,
+  pageId: string,
+): Promise<void> {
+  const { error } = await supabase
+    .from("baselines")
+    .delete()
+    .eq("page_id", pageId);
+  if (error) throw new Error(error.message);
+}
+
+// ─── Spread management (v0.5) ───────────────────────
+
+export async function addSpread(
+  supabase: SupabaseClient,
+  documentId: string,
+  facing: boolean,
+): Promise<{ spread_id: string }> {
+  const { data: maxRow } = await supabase
+    .from("spreads")
+    .select("index")
+    .eq("document_id", documentId)
+    .order("index", { ascending: false })
+    .limit(1)
+    .maybeSingle<{ index: number }>();
+  const nextIndex = (maxRow?.index ?? -1) + 1;
+
+  const { data: spread, error } = await supabase
+    .from("spreads")
+    .insert({ document_id: documentId, index: nextIndex, name: null })
+    .select("id")
+    .single<{ id: string }>();
+  if (error || !spread) {
+    throw new Error(error?.message ?? "Failed to add spread");
+  }
+
+  const pageRows = facing
+    ? [
+        { spread_id: spread.id, side: "left", margins: null },
+        { spread_id: spread.id, side: "right", margins: null },
+      ]
+    : [{ spread_id: spread.id, side: "single", margins: null }];
+  const { error: pErr } = await supabase.from("pages").insert(pageRows);
+  if (pErr) throw new Error(pErr.message);
+
+  return { spread_id: spread.id };
+}
+
+export async function deleteSpread(
+  supabase: SupabaseClient,
+  spreadId: string,
+): Promise<void> {
+  const { error } = await supabase
+    .from("spreads")
+    .delete()
+    .eq("id", spreadId);
+  if (error) throw new Error(error.message);
+}
+
+// ─── Document copy / lineage (v1.0) ────────────────
+
+export async function duplicateDocument(
+  supabase: SupabaseClient,
+  documentId: string,
+  newName?: string,
+): Promise<{ document_id: string }> {
+  const original = await getDocument(supabase, documentId);
+  if (!original) throw new Error("Source document not found");
+
+  const { data: doc, error: docErr } = await supabase
+    .from("documents")
+    .insert({
+      name: newName ?? `${original.name} copy`,
+      description: original.description ?? null,
+      width: original.width,
+      height: original.height,
+      unit: original.unit,
+      dpi: original.dpi,
+      orientation: original.orientation,
+      facing_pages: original.facing_pages,
+      bleed: original.bleed,
+      start_page_number: original.start_page_number,
+      default_margins: original.spreads[0]?.pages[0]?.margins ?? DEFAULT_MARGINS,
+      source_document_id: documentId,
+    })
+    .select("id")
+    .single<{ id: string }>();
+  if (docErr || !doc) {
+    throw new Error(docErr?.message ?? "Failed to duplicate document");
+  }
+
+  for (const spread of original.spreads) {
+    const { data: newSpread, error: sErr } = await supabase
+      .from("spreads")
+      .insert({
+        document_id: doc.id,
+        index: spread.index,
+        name: spread.name ?? null,
+      })
+      .select("id")
+      .single<{ id: string }>();
+    if (sErr || !newSpread) throw new Error(sErr?.message ?? "spread copy");
+
+    for (const p of spread.pages) {
+      const { data: newPage, error: pErr } = await supabase
+        .from("pages")
+        .insert({
+          spread_id: newSpread.id,
+          side: p.side,
+          margins: p.margins,
+        })
+        .select("id")
+        .single<{ id: string }>();
+      if (pErr || !newPage) throw new Error(pErr?.message ?? "page copy");
+
+      if (p.grid) {
+        const gridSourceId = p.grid.source_grid_id ?? p.grid.id;
+        await supabase.from("grids").insert({
+          page_id: newPage.id,
+          type: p.grid.type,
+          cols: p.grid.cols,
+          rows: p.grid.rows,
+          gutter_x: p.grid.gutter_x,
+          gutter_y: p.grid.gutter_y,
+          custom_v: p.grid.custom_v,
+          custom_h: p.grid.custom_h,
+          color: p.grid.color,
+          source_grid_id: gridSourceId,
+        });
+      }
+      if (p.baseline) {
+        await supabase.from("baselines").insert({
+          page_id: newPage.id,
+          start: p.baseline.start,
+          increment: p.baseline.increment,
+          division: p.baseline.division,
+          color: p.baseline.color,
+        });
+      }
+      if (p.slots && p.slots.length > 0) {
+        await supabase.from("slots").insert(
+          p.slots.map((s) => ({
+            page_id: newPage.id,
+            name: s.name,
+            role: s.role,
+            mode: s.mode,
+            col_start: s.col_start ?? null,
+            col_end: s.col_end ?? null,
+            row_start: s.row_start ?? null,
+            row_end: s.row_end ?? null,
+            x: s.x ?? null,
+            y: s.y ?? null,
+            w: s.w ?? null,
+            h: s.h ?? null,
+            typography: s.typography ?? null,
+            z_index: s.z_index,
+            notes: s.notes ?? null,
+          })),
+        );
+      }
+    }
+  }
+  return { document_id: doc.id };
+}
+
+// ─── Apply Grid from gallery (v1.0) ────────────────
+
+export async function applyGridToPage(
+  supabase: SupabaseClient,
+  sourceGridId: string,
+  targetPageId: string,
+): Promise<Grid> {
+  const { data: source, error } = await supabase
+    .from("grids")
+    .select("*")
+    .eq("id", sourceGridId)
+    .single<GridRow>();
+  if (error || !source) {
+    throw new Error(error?.message ?? "Source grid not found");
+  }
+  return upsertGrid(supabase, {
+    page_id: targetPageId,
+    type: source.type,
+    cols: source.cols,
+    rows: source.rows,
+    gutter_x: Number(source.gutter_x),
+    gutter_y: Number(source.gutter_y),
+    custom_v: (source.custom_v ?? []).map(Number),
+    custom_h: (source.custom_h ?? []).map(Number),
+    color: source.color,
+    source_grid_id: source.source_grid_id ?? sourceGridId,
+  });
+}
+
+// ─── Grid gallery listing (v1.0) ───────────────────
+
+export interface GridGalleryEntry {
+  id: string;
+  type: string;
+  cols: number;
+  rows: number;
+  gutter_x: number;
+  gutter_y: number;
+  color: "dark" | "light";
+  document_id: string;
+  document_name: string;
+  width: number;
+  height: number;
+  unit: Unit;
+  descendant_count: number;
+}
+
+export async function listGridGallery(
+  supabase: SupabaseClient,
+  limit = 60,
+): Promise<GridGalleryEntry[]> {
+  const { data, error } = await supabase
+    .from("grid_gallery")
+    .select(
+      "id,type,cols,rows,gutter_x,gutter_y,color,document_id,document_name,width,height,unit,descendant_count",
+    )
+    .order("descendant_count", { ascending: false })
+    .limit(limit);
+  if (error) throw new Error(error.message);
+  return (data ?? []) as GridGalleryEntry[];
+}

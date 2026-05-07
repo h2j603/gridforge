@@ -1,10 +1,38 @@
-import type { Document, Page } from "@/lib/types";
+"use client";
+
+import type { Document, Page, Slot, SlotRole } from "@/lib/types";
 import { toPx } from "@/lib/units";
 import { effectiveSideMargins } from "@/lib/geometry";
 import { GridLayer } from "./GridLayer";
+import { BaselineLayer } from "./BaselineLayer";
 import { RulerOverlay } from "./RulerOverlay";
+import { SlotLayer } from "./SlotLayer";
 
 const VIEW_DPI = 96;
+
+interface CreateInput {
+  mode: "cell" | "free";
+  col_start?: number;
+  col_end?: number;
+  row_start?: number;
+  row_end?: number;
+  x?: number;
+  y?: number;
+  w?: number;
+  h?: number;
+}
+
+interface PatchInput {
+  mode?: "cell" | "free";
+  col_start?: number | null;
+  col_end?: number | null;
+  row_start?: number | null;
+  row_end?: number | null;
+  x?: number | null;
+  y?: number | null;
+  w?: number | null;
+  h?: number | null;
+}
 
 interface Props {
   document: Document;
@@ -13,6 +41,16 @@ interface Props {
   showGrid: boolean;
   showRulers: boolean;
   showMargins: boolean;
+  showBaseline: boolean;
+  showSlots: boolean;
+  selectedSlotId: string | null;
+  defaultRole: SlotRole;
+  onSelectSlot?: (slotId: string | null) => void;
+  onCreateSlot?: (
+    pageId: string,
+    draft: CreateInput & { name: string; role: SlotRole; z_index?: number },
+  ) => void;
+  onPatchSlot?: (pageId: string, slotId: string, patch: PatchInput) => void;
 }
 
 export function PageBoard({
@@ -22,6 +60,13 @@ export function PageBoard({
   showGrid,
   showRulers,
   showMargins,
+  showBaseline,
+  showSlots,
+  selectedSlotId,
+  defaultRole,
+  onSelectSlot,
+  onCreateSlot,
+  onPatchSlot,
 }: Props) {
   const wPx = toPx(document.width, document.unit, VIEW_DPI) * scale;
   const hPx = toPx(document.height, document.unit, VIEW_DPI) * scale;
@@ -37,6 +82,12 @@ export function PageBoard({
     y: marginTop,
     w: wPx - marginLeft - marginRight,
     h: hPx - marginTop - marginBottom,
+  };
+
+  const handleCreate = (input: CreateInput) => {
+    if (!onCreateSlot) return;
+    const name = nextSlotName(page.slots ?? [], defaultRole);
+    onCreateSlot(page.id, { ...input, name, role: defaultRole });
   };
 
   return (
@@ -62,8 +113,28 @@ export function PageBoard({
           />
         ) : null}
 
+        {page.baseline && showBaseline ? (
+          <BaselineLayer
+            baseline={page.baseline}
+            document={document}
+            pagePx={{ w: wPx, h: hPx }}
+            scale={scale}
+          />
+        ) : null}
+
         {page.grid && showGrid ? (
           <GridLayer grid={page.grid} rect={contentRect} />
+        ) : null}
+
+        {showSlots && onSelectSlot && onPatchSlot ? (
+          <SlotLayer
+            page={page}
+            rect={contentRect}
+            selectedSlotId={selectedSlotId}
+            onSelect={onSelectSlot}
+            onCreate={handleCreate}
+            onPatch={(slotId, patch) => onPatchSlot(page.id, slotId, patch)}
+          />
         ) : null}
 
         <figcaption className="absolute -bottom-6 left-0 text-[10px] uppercase tracking-wide text-ink-soft">
@@ -73,4 +144,12 @@ export function PageBoard({
       </figure>
     </div>
   );
+}
+
+function nextSlotName(slots: Slot[], role: SlotRole): string {
+  const base = role.replace("-", " ");
+  let n = 1;
+  const existing = new Set(slots.map((s) => s.name));
+  while (existing.has(`${base} ${n}`)) n += 1;
+  return `${base} ${n}`;
 }

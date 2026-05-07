@@ -202,6 +202,164 @@ function unique(values: number[]): number[] {
   return out.sort((a, b) => a - b);
 }
 
+// ─── Slot geometry ──────────────────────────────────
+
+export interface CellRange {
+  col_start: number;
+  col_end: number;
+  row_start: number;
+  row_end: number;
+}
+
+export interface FreeRect {
+  x: number; // 0–1
+  y: number;
+  w: number;
+  h: number;
+}
+
+/**
+ * For a given grid, return the column edge fractions (start, end pairs).
+ * E.g. for cols=3 with no gutter: [[0,1/3],[1/3,2/3],[2/3,1]].
+ */
+export function gridColumnRanges(grid: Grid): Array<[number, number]> {
+  const lines = computeGridLines(grid);
+  const out: Array<[number, number]> = [];
+  for (let i = 0; i + 1 < lines.v.length; i += 2) {
+    out.push([lines.v[i], lines.v[i + 1]]);
+  }
+  return out;
+}
+
+export function gridRowRanges(grid: Grid): Array<[number, number]> {
+  const lines = computeGridLines(grid);
+  const out: Array<[number, number]> = [];
+  for (let i = 0; i + 1 < lines.h.length; i += 2) {
+    out.push([lines.h[i], lines.h[i + 1]]);
+  }
+  return out;
+}
+
+/**
+ * Snap a fractional rect (0..1) to the nearest grid cell range. Returns the
+ * inclusive col_start/col_end (exclusive) etc.
+ */
+export function snapToGridCells(
+  grid: Grid,
+  rect: FreeRect,
+): CellRange {
+  const cols = gridColumnRanges(grid);
+  const rows = gridRowRanges(grid);
+
+  // Pick the column whose start is closest to rect.x, and end closest to rect.x+w.
+  const startCol = nearestIndex(cols.map(([s]) => s), rect.x);
+  const endColInclusive = nearestIndex(
+    cols.map(([, e]) => e),
+    rect.x + rect.w,
+  );
+  const startRow = nearestIndex(rows.map(([s]) => s), rect.y);
+  const endRowInclusive = nearestIndex(
+    rows.map(([, e]) => e),
+    rect.y + rect.h,
+  );
+
+  const colStart = Math.min(startCol, endColInclusive);
+  const colEnd = Math.max(startCol, endColInclusive) + 1; // exclusive
+  const rowStart = Math.min(startRow, endRowInclusive);
+  const rowEnd = Math.max(startRow, endRowInclusive) + 1;
+
+  return {
+    col_start: colStart,
+    col_end: Math.max(colEnd, colStart + 1),
+    row_start: rowStart,
+    row_end: Math.max(rowEnd, rowStart + 1),
+  };
+}
+
+function nearestIndex(xs: number[], v: number): number {
+  let best = 0;
+  let bestD = Infinity;
+  for (let i = 0; i < xs.length; i += 1) {
+    const d = Math.abs(xs[i] - v);
+    if (d < bestD) {
+      bestD = d;
+      best = i;
+    }
+  }
+  return best;
+}
+
+/**
+ * Convert a CellRange to a fractional rect using the grid's column/row ranges.
+ */
+export function cellRangeToRect(grid: Grid, range: CellRange): FreeRect {
+  const cols = gridColumnRanges(grid);
+  const rows = gridRowRanges(grid);
+  const cs = clampIndex(range.col_start, cols.length);
+  const ce = clampIndex(range.col_end - 1, cols.length);
+  const rs = clampIndex(range.row_start, rows.length);
+  const re = clampIndex(range.row_end - 1, rows.length);
+  const x0 = cols[cs][0];
+  const x1 = cols[ce][1];
+  const y0 = rows[rs][0];
+  const y1 = rows[re][1];
+  return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+}
+
+function clampIndex(i: number, len: number): number {
+  if (len <= 0) return 0;
+  return Math.max(0, Math.min(len - 1, i));
+}
+
+/**
+ * Compute the displayed rect (in CSS px relative to the content rect) for
+ * a slot, supporting both modes.
+ */
+export function slotPx(
+  slot: { mode: "cell" | "free"; col_start?: number; col_end?: number; row_start?: number; row_end?: number; x?: number; y?: number; w?: number; h?: number },
+  grid: Grid | undefined,
+  contentW: number,
+  contentH: number,
+): { x: number; y: number; w: number; h: number } | null {
+  if (slot.mode === "cell") {
+    if (
+      !grid ||
+      slot.col_start === undefined ||
+      slot.col_end === undefined ||
+      slot.row_start === undefined ||
+      slot.row_end === undefined
+    ) {
+      return null;
+    }
+    const r = cellRangeToRect(grid, {
+      col_start: slot.col_start,
+      col_end: slot.col_end,
+      row_start: slot.row_start,
+      row_end: slot.row_end,
+    });
+    return {
+      x: r.x * contentW,
+      y: r.y * contentH,
+      w: r.w * contentW,
+      h: r.h * contentH,
+    };
+  }
+  if (
+    slot.x === undefined ||
+    slot.y === undefined ||
+    slot.w === undefined ||
+    slot.h === undefined
+  ) {
+    return null;
+  }
+  return {
+    x: slot.x * contentW,
+    y: slot.y * contentH,
+    w: slot.w * contentW,
+    h: slot.h * contentH,
+  };
+}
+
 // margins helper for facing layout
 export function effectiveSideMargins(
   page: Page,
