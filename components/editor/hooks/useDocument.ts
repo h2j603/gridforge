@@ -238,6 +238,11 @@ export interface UseDocumentResult {
     refId: string,
     visible: boolean,
   ) => void;
+  setReferenceTransform: (
+    pageId: string,
+    refId: string,
+    patch: { tx?: number; ty?: number; scale?: number; rotation?: number },
+  ) => void;
   removeReference: (pageId: string, refId: string) => void;
   applyGridFromGallery: (pageId: string, sourceGridId: string) => Promise<void>;
 }
@@ -492,6 +497,10 @@ export function useDocument(initial: Document): UseDocumentResult {
           image_url: ref.image_url,
           opacity: ref.opacity,
           visible: ref.visible,
+          tx: ref.tx,
+          ty: ref.ty,
+          scale: ref.scale,
+          rotation: ref.rotation,
         };
         dispatch({ type: "addReference", pageId, reference });
         return reference;
@@ -538,6 +547,21 @@ export function useDocument(initial: Document): UseDocumentResult {
       void runAsync(() =>
         updatePageReference(getSupabase(), refId, { visible }),
       );
+    },
+    [runAsync],
+  );
+
+  const setReferenceTransform = useCallback<
+    UseDocumentResult["setReferenceTransform"]
+  >(
+    (pageId, refId, patch) => {
+      dispatch({
+        type: "patchReference",
+        pageId,
+        refId,
+        patch,
+      });
+      void runAsync(() => updatePageReference(getSupabase(), refId, patch));
     },
     [runAsync],
   );
@@ -593,6 +617,7 @@ export function useDocument(initial: Document): UseDocumentResult {
       uploadReference: uploadReferenceCb,
       setReferenceOpacity,
       setReferenceVisible,
+      setReferenceTransform,
       removeReference: removeReferenceCb,
       applyGridFromGallery,
     }),
@@ -612,6 +637,7 @@ export function useDocument(initial: Document): UseDocumentResult {
       uploadReferenceCb,
       setReferenceOpacity,
       setReferenceVisible,
+      setReferenceTransform,
       removeReferenceCb,
       applyGridFromGallery,
     ],

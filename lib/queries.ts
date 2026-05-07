@@ -324,6 +324,10 @@ export async function getDocument(
           image_url: r.image_url,
           opacity: Number(r.opacity),
           visible: Boolean(r.visible),
+          tx: Number(r.tx ?? 0),
+          ty: Number(r.ty ?? 0),
+          scale: Number(r.scale ?? 1),
+          rotation: Number(r.rotation ?? 0),
         }));
       }
       return page;
@@ -509,6 +513,10 @@ export interface PageReferenceRow {
   image_url: string;
   opacity: number;
   visible: boolean;
+  tx: number;
+  ty: number;
+  scale: number;
+  rotation: number;
 }
 
 export async function listPageReferences(
@@ -518,17 +526,30 @@ export async function listPageReferences(
   if (pageIds.length === 0) return {};
   const { data, error } = await supabase
     .from("page_references")
-    .select("id, page_id, image_url, opacity, visible")
+    .select(
+      "id, page_id, image_url, opacity, visible, tx, ty, scale, rotation",
+    )
     .in("page_id", pageIds)
     .returns<PageReferenceRow[]>();
   if (error) throw new Error(error.message);
   const out: Record<string, PageReferenceRow[]> = {};
   for (const row of data ?? []) {
     const list = out[row.page_id] ?? [];
-    list.push({ ...row, opacity: Number(row.opacity) });
+    list.push(normalizeRefRow(row));
     out[row.page_id] = list;
   }
   return out;
+}
+
+function normalizeRefRow(row: PageReferenceRow): PageReferenceRow {
+  return {
+    ...row,
+    opacity: Number(row.opacity),
+    tx: Number(row.tx ?? 0),
+    ty: Number(row.ty ?? 0),
+    scale: Number(row.scale ?? 1),
+    rotation: Number(row.rotation ?? 0),
+  };
 }
 
 /**
@@ -572,19 +593,34 @@ export async function uploadPageReference(
       image_url: pub.publicUrl,
       opacity: 0.5,
       visible: true,
+      tx: 0,
+      ty: 0,
+      scale: 1,
+      rotation: 0,
     })
-    .select("id, page_id, image_url, opacity, visible")
+    .select(
+      "id, page_id, image_url, opacity, visible, tx, ty, scale, rotation",
+    )
     .single<PageReferenceRow>();
   if (error || !row) {
     throw new Error(error?.message ?? "Failed to save reference row");
   }
-  return { ...row, opacity: Number(row.opacity) };
+  return normalizeRefRow(row);
+}
+
+export interface PageReferencePatch {
+  opacity?: number;
+  visible?: boolean;
+  tx?: number;
+  ty?: number;
+  scale?: number;
+  rotation?: number;
 }
 
 export async function updatePageReference(
   supabase: SupabaseClient,
   refId: string,
-  patch: { opacity?: number; visible?: boolean },
+  patch: PageReferencePatch,
 ): Promise<void> {
   const { error } = await supabase
     .from("page_references")

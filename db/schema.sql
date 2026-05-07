@@ -80,8 +80,18 @@ create table if not exists page_references (
   page_id uuid not null references pages(id) on delete cascade,
   image_url text not null,
   opacity numeric not null default 0.5,
-  visible boolean not null default true
+  visible boolean not null default true,
+  tx numeric not null default 0,
+  ty numeric not null default 0,
+  scale numeric not null default 1,
+  rotation numeric not null default 0
 );
+
+-- Migration helpers for existing schemas:
+alter table page_references add column if not exists tx numeric not null default 0;
+alter table page_references add column if not exists ty numeric not null default 0;
+alter table page_references add column if not exists scale numeric not null default 1;
+alter table page_references add column if not exists rotation numeric not null default 0;
 
 create index if not exists spreads_document_idx on spreads(document_id);
 create index if not exists pages_spread_idx on pages(spread_id);

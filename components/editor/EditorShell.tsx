@@ -35,6 +35,7 @@ export function EditorShell({ document: initial }: { document: Document }) {
     uploadReference,
     setReferenceOpacity,
     setReferenceVisible,
+    setReferenceTransform,
     removeReference,
     applyGridFromGallery,
   } = useDocument(initial);
@@ -146,7 +147,27 @@ export function EditorShell({ document: initial }: { document: Document }) {
             GridForge
           </a>
           <span className="hidden text-xs text-ink-soft sm:inline">/</span>
-          <span className="truncate text-sm">{document.name}</span>
+          <button
+            type="button"
+            onClick={() => setMobileTab("page-setup")}
+            className="inline-flex min-w-0 items-center gap-1 truncate rounded-md px-1.5 py-0.5 text-sm hover:bg-paper md:pointer-events-none md:px-0 md:hover:bg-transparent"
+          >
+            <span className="truncate">{document.name}</span>
+            <svg
+              className="h-3 w-3 shrink-0 text-ink-faint md:hidden"
+              viewBox="0 0 12 12"
+              fill="none"
+              aria-hidden
+            >
+              <path
+                d="M3 4.5l3 3 3-3"
+                stroke="currentColor"
+                strokeWidth="1.4"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </button>
           <SyncIndicator pending={status.pending} error={status.error} />
         </div>
         {/* Desktop toolbar */}
@@ -250,6 +271,7 @@ export function EditorShell({ document: initial }: { document: Document }) {
             onUpload={uploadReference}
             onOpacity={setReferenceOpacity}
             onVisible={setReferenceVisible}
+            onTransform={setReferenceTransform}
             onRemove={removeReference}
           />
           <SlotPanel
@@ -360,6 +382,7 @@ export function EditorShell({ document: initial }: { document: Document }) {
             onUpload={uploadReference}
             onOpacity={setReferenceOpacity}
             onVisible={setReferenceVisible}
+            onTransform={setReferenceTransform}
             onRemove={removeReference}
           />
         </div>
