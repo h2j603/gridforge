@@ -8,16 +8,21 @@ import type {
   GridType,
   Margins,
   Page,
+  Reference,
   Slot,
 } from "@/lib/types";
 import { createClient } from "@/lib/supabase/client";
 import {
   addSpread as addSpreadQuery,
+  applyGridToPage as applyGridToPageQuery,
   deleteBaseline,
+  deletePageReference,
   deleteSlot as deleteSlotQuery,
   deleteSpread as deleteSpreadQuery,
   insertSlot,
+  updatePageReference,
   updateSlot,
+  uploadPageReference,
   upsertBaseline,
   upsertGrid,
   updateDocument as updateDocumentQuery,
@@ -66,7 +71,15 @@ type Action =
       slotId: string;
       patch: SlotMutationPatch;
     }
-  | { type: "removeSlot"; pageId: string; slotId: string };
+  | { type: "removeSlot"; pageId: string; slotId: string }
+  | { type: "addReference"; pageId: string; reference: Reference }
+  | {
+      type: "patchReference";
+      pageId: string;
+      refId: string;
+      patch: Partial<Reference>;
+    }
+  | { type: "removeReference"; pageId: string; refId: string };
 
 function reducer(state: Document, action: Action): Document {
   switch (action.type) {
@@ -112,6 +125,26 @@ function reducer(state: Document, action: Action): Document {
       return mapPage(state, action.pageId, (p) => ({
         ...p,
         slots: (p.slots ?? []).filter((s) => s.id !== action.slotId),
+      }));
+
+    case "addReference":
+      return mapPage(state, action.pageId, (p) => ({
+        ...p,
+        references: [...(p.references ?? []), action.reference],
+      }));
+
+    case "patchReference":
+      return mapPage(state, action.pageId, (p) => ({
+        ...p,
+        references: (p.references ?? []).map((r) =>
+          r.id === action.refId ? { ...r, ...action.patch } : r,
+        ),
+      }));
+
+    case "removeReference":
+      return mapPage(state, action.pageId, (p) => ({
+        ...p,
+        references: (p.references ?? []).filter((r) => r.id !== action.refId),
       }));
 
     default:
@@ -194,6 +227,19 @@ export interface UseDocumentResult {
   ) => void;
   addSpread: () => Promise<void>;
   removeSpread: (spreadId: string) => Promise<void>;
+  uploadReference: (pageId: string, file: File) => Promise<Reference>;
+  setReferenceOpacity: (
+    pageId: string,
+    refId: string,
+    opacity: number,
+  ) => void;
+  setReferenceVisible: (
+    pageId: string,
+    refId: string,
+    visible: boolean,
+  ) => void;
+  removeReference: (pageId: string, refId: string) => void;
+  applyGridFromGallery: (pageId: string, sourceGridId: string) => Promise<void>;
 }
 
 export function useDocument(initial: Document): UseDocumentResult {
@@ -429,6 +475,107 @@ export function useDocument(initial: Document): UseDocumentResult {
     }
   }, []);
 
+  const uploadReferenceCb = useCallback<UseDocumentResult["uploadReference"]>(
+    async (pageId, file) => {
+      pendingRef.current += 1;
+      setStatus({ pending: pendingRef.current, error: null });
+      try {
+        const ref = await uploadPageReference(
+          getSupabase(),
+          document.id,
+          pageId,
+          file,
+        );
+        const reference: Reference = {
+          id: ref.id,
+          page_id: ref.page_id,
+          image_url: ref.image_url,
+          opacity: ref.opacity,
+          visible: ref.visible,
+        };
+        dispatch({ type: "addReference", pageId, reference });
+        return reference;
+      } catch (e) {
+        setStatus({
+          error: e instanceof Error ? e.message : String(e),
+        });
+        throw e;
+      } finally {
+        pendingRef.current = Math.max(0, pendingRef.current - 1);
+        setStatus({ pending: pendingRef.current });
+      }
+    },
+    [document.id],
+  );
+
+  const setReferenceOpacity = useCallback<
+    UseDocumentResult["setReferenceOpacity"]
+  >(
+    (pageId, refId, opacity) => {
+      dispatch({
+        type: "patchReference",
+        pageId,
+        refId,
+        patch: { opacity },
+      });
+      void runAsync(() =>
+        updatePageReference(getSupabase(), refId, { opacity }),
+      );
+    },
+    [runAsync],
+  );
+
+  const setReferenceVisible = useCallback<
+    UseDocumentResult["setReferenceVisible"]
+  >(
+    (pageId, refId, visible) => {
+      dispatch({
+        type: "patchReference",
+        pageId,
+        refId,
+        patch: { visible },
+      });
+      void runAsync(() =>
+        updatePageReference(getSupabase(), refId, { visible }),
+      );
+    },
+    [runAsync],
+  );
+
+  const removeReferenceCb = useCallback<UseDocumentResult["removeReference"]>(
+    (pageId, refId) => {
+      dispatch({ type: "removeReference", pageId, refId });
+      void runAsync(() => deletePageReference(getSupabase(), refId));
+    },
+    [runAsync],
+  );
+
+  const applyGridFromGallery = useCallback<
+    UseDocumentResult["applyGridFromGallery"]
+  >(
+    async (pageId, sourceGridId) => {
+      pendingRef.current += 1;
+      setStatus({ pending: pendingRef.current, error: null });
+      try {
+        const saved = await applyGridToPageQuery(
+          getSupabase(),
+          sourceGridId,
+          pageId,
+        );
+        dispatch({ type: "upsertGrid", pageId, grid: saved });
+      } catch (e) {
+        setStatus({
+          error: e instanceof Error ? e.message : String(e),
+        });
+        throw e;
+      } finally {
+        pendingRef.current = Math.max(0, pendingRef.current - 1);
+        setStatus({ pending: pendingRef.current });
+      }
+    },
+    [],
+  );
+
   return useMemo(
     () => ({
       document,
@@ -443,6 +590,11 @@ export function useDocument(initial: Document): UseDocumentResult {
       setBaselineSpec,
       addSpread,
       removeSpread,
+      uploadReference: uploadReferenceCb,
+      setReferenceOpacity,
+      setReferenceVisible,
+      removeReference: removeReferenceCb,
+      applyGridFromGallery,
     }),
     [
       document,
@@ -457,6 +609,11 @@ export function useDocument(initial: Document): UseDocumentResult {
       setBaselineSpec,
       addSpread,
       removeSpread,
+      uploadReferenceCb,
+      setReferenceOpacity,
+      setReferenceVisible,
+      removeReferenceCb,
+      applyGridFromGallery,
     ],
   );
 }

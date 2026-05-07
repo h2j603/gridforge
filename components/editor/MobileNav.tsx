@@ -10,7 +10,8 @@ export type MobileTab =
   | "baseline"
   | "slot"
   | "type"
-  | "view";
+  | "view"
+  | "reference";
 
 interface Props {
   onOpen: (tab: MobileTab) => void;
@@ -23,8 +24,12 @@ export function MobileNav({ onOpen, onExport }: Props) {
       <Tab label="Pages" onClick={() => onOpen("pages")} icon={<IconPages />} />
       <Tab label="Grid" onClick={() => onOpen("grid")} icon={<IconGrid />} />
       <Tab label="Slots" onClick={() => onOpen("slot")} icon={<IconSlot />} />
+      <Tab
+        label="Ref"
+        onClick={() => onOpen("reference")}
+        icon={<IconImage />}
+      />
       <Tab label="View" onClick={() => onOpen("view")} icon={<IconEye />} />
-      <Tab label="More" onClick={() => onOpen("page-setup")} icon={<IconMore />} />
       <Tab label="Export" onClick={onExport} icon={<IconExport />} primary />
     </nav>
   );
@@ -90,6 +95,20 @@ function IconEye() {
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
       <path d="M1 8s2.5-4.5 7-4.5S15 8 15 8s-2.5 4.5-7 4.5S1 8 1 8z" stroke="currentColor" />
       <circle cx="8" cy="8" r="2" stroke="currentColor" />
+    </svg>
+  );
+}
+function IconImage() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <rect x="2" y="3" width="12" height="10" rx="0.5" stroke="currentColor" />
+      <circle cx="6" cy="6.5" r="1.1" fill="currentColor" />
+      <path
+        d="M14 11.5l-3.5-3-3 2.5L5 9 2 11"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }

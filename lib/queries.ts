@@ -263,7 +263,7 @@ export async function getDocument(
 
   const pageIds = (pages ?? []).map((p) => p.id);
 
-  const [gridsRes, baselinesRes, slotsRes] = pageIds.length
+  const [gridsRes, baselinesRes, slotsRes, referencesByPage] = pageIds.length
     ? await Promise.all([
         supabase
           .from("grids")
@@ -281,11 +281,13 @@ export async function getDocument(
           .in("page_id", pageIds)
           .order("z_index", { ascending: true })
           .returns<SlotRow[]>(),
+        listPageReferences(supabase, pageIds),
       ])
     : [
         { data: [] as GridRow[], error: null },
         { data: [] as BaselineRow[], error: null },
         { data: [] as SlotRow[], error: null },
+        {} as Record<string, PageReferenceRow[]>,
       ];
 
   if (gridsRes.error) throw new Error(gridsRes.error.message);
@@ -314,6 +316,16 @@ export async function getDocument(
       if (baselineRow) page.baseline = mapBaseline(baselineRow);
       const slotRows = slotsByPage.get(p.id);
       if (slotRows && slotRows.length > 0) page.slots = slotRows.map(mapSlot);
+      const refs = referencesByPage[p.id];
+      if (refs && refs.length > 0) {
+        page.references = refs.map((r) => ({
+          id: r.id,
+          page_id: r.page_id,
+          image_url: r.image_url,
+          opacity: Number(r.opacity),
+          visible: Boolean(r.visible),
+        }));
+      }
       return page;
     });
     return {
@@ -484,6 +496,111 @@ export async function deleteGrid(
   pageId: string,
 ): Promise<void> {
   const { error } = await supabase.from("grids").delete().eq("page_id", pageId);
+  if (error) throw new Error(error.message);
+}
+
+// ─── Page references (v0.7) ────────────────────────
+
+export const REFERENCES_BUCKET = "references";
+
+export interface PageReferenceRow {
+  id: string;
+  page_id: string;
+  image_url: string;
+  opacity: number;
+  visible: boolean;
+}
+
+export async function listPageReferences(
+  supabase: SupabaseClient,
+  pageIds: string[],
+): Promise<Record<string, PageReferenceRow[]>> {
+  if (pageIds.length === 0) return {};
+  const { data, error } = await supabase
+    .from("page_references")
+    .select("id, page_id, image_url, opacity, visible")
+    .in("page_id", pageIds)
+    .returns<PageReferenceRow[]>();
+  if (error) throw new Error(error.message);
+  const out: Record<string, PageReferenceRow[]> = {};
+  for (const row of data ?? []) {
+    const list = out[row.page_id] ?? [];
+    list.push({ ...row, opacity: Number(row.opacity) });
+    out[row.page_id] = list;
+  }
+  return out;
+}
+
+/**
+ * Upload a file to the public `references` bucket and create a
+ * page_references row. Returns the inserted row.
+ */
+export async function uploadPageReference(
+  supabase: SupabaseClient,
+  documentId: string,
+  pageId: string,
+  file: File,
+): Promise<PageReferenceRow> {
+  const ext = (file.name.split(".").pop() ?? "bin").toLowerCase();
+  const safeExt = ext.replace(/[^a-z0-9]/g, "") || "bin";
+  const stamp = Date.now();
+  const rand = Math.random().toString(36).slice(2, 8);
+  const path = `${documentId}/${pageId}/${stamp}-${rand}.${safeExt}`;
+
+  const upload = await supabase.storage
+    .from(REFERENCES_BUCKET)
+    .upload(path, file, {
+      cacheControl: "3600",
+      upsert: false,
+      contentType: file.type || "application/octet-stream",
+    });
+  if (upload.error) {
+    throw new Error(
+      `Upload failed (${upload.error.message}). ` +
+        `Make sure the public "references" bucket exists in Supabase Storage.`,
+    );
+  }
+
+  const { data: pub } = supabase.storage
+    .from(REFERENCES_BUCKET)
+    .getPublicUrl(path);
+
+  const { data: row, error } = await supabase
+    .from("page_references")
+    .insert({
+      page_id: pageId,
+      image_url: pub.publicUrl,
+      opacity: 0.5,
+      visible: true,
+    })
+    .select("id, page_id, image_url, opacity, visible")
+    .single<PageReferenceRow>();
+  if (error || !row) {
+    throw new Error(error?.message ?? "Failed to save reference row");
+  }
+  return { ...row, opacity: Number(row.opacity) };
+}
+
+export async function updatePageReference(
+  supabase: SupabaseClient,
+  refId: string,
+  patch: { opacity?: number; visible?: boolean },
+): Promise<void> {
+  const { error } = await supabase
+    .from("page_references")
+    .update(patch)
+    .eq("id", refId);
+  if (error) throw new Error(error.message);
+}
+
+export async function deletePageReference(
+  supabase: SupabaseClient,
+  refId: string,
+): Promise<void> {
+  const { error } = await supabase
+    .from("page_references")
+    .delete()
+    .eq("id", refId);
   if (error) throw new Error(error.message);
 }
 
