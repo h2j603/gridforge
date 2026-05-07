@@ -1,7 +1,7 @@
 -- GridForge v1 schema
--- See GRIDFORGE_SPEC.md §2.1
+-- Mobile-safe: no single-letter table aliases that could trip
+-- chat clients into wrapping `letter.id` as a TLD link.
 
--- documents
 create table if not exists documents (
   id uuid primary key default gen_random_uuid(),
   name text not null,
@@ -20,7 +20,6 @@ create table if not exists documents (
   updated_at timestamptz not null default now()
 );
 
--- spreads
 create table if not exists spreads (
   id uuid primary key default gen_random_uuid(),
   document_id uuid not null references documents(id) on delete cascade,
@@ -29,7 +28,6 @@ create table if not exists spreads (
   unique (document_id, index)
 );
 
--- pages
 create table if not exists pages (
   id uuid primary key default gen_random_uuid(),
   spread_id uuid not null references spreads(id) on delete cascade,
@@ -38,7 +36,6 @@ create table if not exists pages (
   unique (spread_id, side)
 );
 
--- grids
 create table if not exists grids (
   id uuid primary key default gen_random_uuid(),
   page_id uuid not null references pages(id) on delete cascade,
@@ -54,7 +51,6 @@ create table if not exists grids (
   unique (page_id)
 );
 
--- baselines
 create table if not exists baselines (
   id uuid primary key default gen_random_uuid(),
   page_id uuid not null references pages(id) on delete cascade,
@@ -65,7 +61,6 @@ create table if not exists baselines (
   unique (page_id)
 );
 
--- slots
 create table if not exists slots (
   id uuid primary key default gen_random_uuid(),
   page_id uuid not null references pages(id) on delete cascade,
@@ -80,7 +75,6 @@ create table if not exists slots (
   notes text
 );
 
--- references
 create table if not exists page_references (
   id uuid primary key default gen_random_uuid(),
   page_id uuid not null references pages(id) on delete cascade,
@@ -89,24 +83,41 @@ create table if not exists page_references (
   visible boolean not null default true
 );
 
--- indexes
 create index if not exists spreads_document_idx on spreads(document_id);
 create index if not exists pages_spread_idx on pages(spread_id);
 create index if not exists slots_page_idx on slots(page_id);
 create index if not exists grids_source_idx on grids(source_grid_id);
 create index if not exists documents_source_idx on documents(source_document_id);
 
--- grid gallery view: originals only, joined with parent doc info
+-- Reusable-grid gallery view. Uses full table names so that no
+-- single-letter alias appears next to ".id" (which some chat clients
+-- auto-link as a domain).
 create or replace view grid_gallery as
 select
-  g.*,
-  p.id as page_id_view,
-  d.id as document_id,
-  d.name as document_name,
-  d.width, d.height, d.unit,
-  (select count(*) from grids c where c.source_grid_id = g.id) as descendant_count
-from grids g
-join pages p on g.page_id = p.id
-join spreads s on p.spread_id = s.id
-join documents d on s.document_id = d.id
-where g.source_grid_id is null;
+  grids.id,
+  grids.page_id,
+  grids.type,
+  grids.cols,
+  grids.rows,
+  grids.gutter_x,
+  grids.gutter_y,
+  grids.custom_v,
+  grids.custom_h,
+  grids.color,
+  grids.source_grid_id,
+  pages.id            as page_id_view,
+  documents.id        as document_id,
+  documents.name      as document_name,
+  documents.width,
+  documents.height,
+  documents.unit,
+  (
+    select count(*)
+    from grids descendants
+    where descendants.source_grid_id = grids.id
+  ) as descendant_count
+from grids
+join pages     on grids.page_id    = pages.id
+join spreads   on pages.spread_id  = spreads.id
+join documents on spreads.document_id = documents.id
+where grids.source_grid_id is null;
