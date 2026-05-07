@@ -5,6 +5,7 @@ import { toPx } from "@/lib/units";
 import { effectiveSideMargins } from "@/lib/geometry";
 import { GridLayer } from "./GridLayer";
 import { BaselineLayer } from "./BaselineLayer";
+import { ReferenceLayer } from "./ReferenceLayer";
 import { RulerOverlay } from "./RulerOverlay";
 import { SlotLayer } from "./SlotLayer";
 
@@ -101,9 +102,11 @@ export function PageBoard({
       ) : null}
 
       <figure
-        className="relative bg-page text-page-ink shadow-[0_18px_36px_-22px_rgba(20,20,16,0.25)] ring-1 ring-rule-strong"
+        className="relative overflow-hidden bg-page text-page-ink shadow-[0_18px_36px_-22px_rgba(20,20,16,0.25)] ring-1 ring-rule-strong"
         style={{ width: wPx, height: hPx }}
       >
+        <ReferenceLayer page={page} pagePx={{ w: wPx, h: hPx }} />
+
         {showMargins ? (
           <div
             aria-hidden

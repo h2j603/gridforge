@@ -5,6 +5,7 @@ import type { Grid, GridType, Page } from "@/lib/types";
 import { Field, Input, Select } from "@/components/ui/Field";
 import { Button } from "@/components/ui/Button";
 import { PanelSection } from "./PanelSection";
+import { LoadGridDialog } from "../dialogs/LoadGridDialog";
 
 interface Props {
   page: Page | null;
@@ -19,9 +20,13 @@ interface Props {
       color: "dark" | "light";
     },
   ) => void;
+  onLoadFromGallery?: (
+    pageId: string,
+    sourceGridId: string,
+  ) => Promise<void> | void;
 }
 
-export function GridPanel({ page, onChange }: Props) {
+export function GridPanel({ page, onChange, onLoadFromGallery }: Props) {
   if (!page) {
     return (
       <PanelSection title="Grid">
@@ -31,7 +36,12 @@ export function GridPanel({ page, onChange }: Props) {
   }
   return (
     <PanelSection title="Grid">
-      <GridControls key={page.id} page={page} onChange={onChange} />
+      <GridControls
+        key={page.id}
+        page={page}
+        onChange={onChange}
+        onLoadFromGallery={onLoadFromGallery}
+      />
     </PanelSection>
   );
 }
@@ -39,9 +49,11 @@ export function GridPanel({ page, onChange }: Props) {
 function GridControls({
   page,
   onChange,
+  onLoadFromGallery,
 }: {
   page: Page;
   onChange: Props["onChange"];
+  onLoadFromGallery?: Props["onLoadFromGallery"];
 }) {
   const grid = page.grid;
   const [type, setType] = useState<GridType>(grid?.type ?? "columnar");
@@ -50,6 +62,7 @@ function GridControls({
   const [gutterX, setGutterX] = useState<number>(grid?.gutter_x ?? 0.012);
   const [gutterY, setGutterY] = useState<number>(grid?.gutter_y ?? 0.012);
   const [color, setColor] = useState<Grid["color"]>(grid?.color ?? "dark");
+  const [loadOpen, setLoadOpen] = useState(false);
 
   useEffect(() => {
     if (!grid) return;
@@ -151,9 +164,28 @@ function GridControls({
         </Select>
       </Field>
 
-      <Button onClick={apply} variant="primary" size="sm">
-        {grid ? "Update grid" : "Create grid"}
-      </Button>
+      <div className="flex flex-wrap gap-2">
+        <Button onClick={apply} variant="primary" size="sm">
+          {grid ? "Update grid" : "Create grid"}
+        </Button>
+        {onLoadFromGallery ? (
+          <Button
+            onClick={() => setLoadOpen(true)}
+            variant="secondary"
+            size="sm"
+          >
+            Load from gallery
+          </Button>
+        ) : null}
+      </div>
+
+      {onLoadFromGallery ? (
+        <LoadGridDialog
+          open={loadOpen}
+          onOpenChange={setLoadOpen}
+          onPick={(sourceGridId) => onLoadFromGallery(page.id, sourceGridId)}
+        />
+      ) : null}
     </>
   );
 }

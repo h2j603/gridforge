@@ -61,6 +61,7 @@ export interface Page {
   grid?: Grid;
   baseline?: Baseline;
   slots?: Slot[];
+  references?: Reference[];
 }
 
 // ─── Grid ───────────────────────────────────────────

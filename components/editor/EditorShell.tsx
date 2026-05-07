@@ -17,6 +17,7 @@ import { SlotPanel } from "./panels/SlotPanel";
 import { TypographyPanel } from "./panels/TypographyPanel";
 import { ViewPanel } from "./panels/ViewPanel";
 import { PagesPanel } from "./panels/PagesPanel";
+import { ReferencePanel } from "./panels/ReferencePanel";
 import { ExportDialog } from "./dialogs/ExportDialog";
 import { MobileNav, type MobileTab } from "./MobileNav";
 
@@ -31,6 +32,11 @@ export function EditorShell({ document: initial }: { document: Document }) {
     patchSlot,
     removeSlot,
     addSpread,
+    uploadReference,
+    setReferenceOpacity,
+    setReferenceVisible,
+    removeReference,
+    applyGridFromGallery,
   } = useDocument(initial);
 
   const firstPage = document.spreads[0]?.pages[0]?.id ?? null;
@@ -233,8 +239,19 @@ export function EditorShell({ document: initial }: { document: Document }) {
             page={activePage}
             onApply={patchPageMargins}
           />
-          <GridPanel page={activePage} onChange={setGridSpec} />
+          <GridPanel
+            page={activePage}
+            onChange={setGridSpec}
+            onLoadFromGallery={applyGridFromGallery}
+          />
           <BaselinePanel page={activePage} onApply={setBaselineSpec} />
+          <ReferencePanel
+            page={activePage}
+            onUpload={uploadReference}
+            onOpacity={setReferenceOpacity}
+            onVisible={setReferenceVisible}
+            onRemove={removeReference}
+          />
           <SlotPanel
             page={activePage}
             selectedSlotId={selection.slotId}
@@ -286,8 +303,26 @@ export function EditorShell({ document: initial }: { document: Document }) {
         title="Grid"
       >
         <div className="px-1 py-1">
-          <GridPanel page={activePage} onChange={setGridSpec} />
+          <GridPanel
+            page={activePage}
+            onChange={setGridSpec}
+            onLoadFromGallery={applyGridFromGallery}
+          />
           <BaselinePanel page={activePage} onApply={setBaselineSpec} />
+        </div>
+      </Sheet>
+      <Sheet
+        open={mobileTab === "page-setup"}
+        onOpenChange={(o) => setMobileTab(o ? "page-setup" : null)}
+        title="Document"
+      >
+        <div className="px-1 py-1">
+          <PageSetupPanel document={document} />
+          <MarginsPanel
+            document={document}
+            page={activePage}
+            onApply={patchPageMargins}
+          />
         </div>
       </Sheet>
       <Sheet
@@ -315,6 +350,21 @@ export function EditorShell({ document: initial }: { document: Document }) {
         </div>
       </Sheet>
       <Sheet
+        open={mobileTab === "reference"}
+        onOpenChange={(o) => setMobileTab(o ? "reference" : null)}
+        title="Reference"
+      >
+        <div className="px-1 py-1">
+          <ReferencePanel
+            page={activePage}
+            onUpload={uploadReference}
+            onOpacity={setReferenceOpacity}
+            onVisible={setReferenceVisible}
+            onRemove={removeReference}
+          />
+        </div>
+      </Sheet>
+      <Sheet
         open={mobileTab === "view"}
         onOpenChange={(o) => setMobileTab(o ? "view" : null)}
         title="View"
@@ -334,20 +384,6 @@ export function EditorShell({ document: initial }: { document: Document }) {
           onToggleSlots={() => setShowSlots((v) => !v)}
           onToggleSnap={() => setSnapToGrid((v) => !v)}
         />
-      </Sheet>
-      <Sheet
-        open={mobileTab === "page-setup"}
-        onOpenChange={(o) => setMobileTab(o ? "page-setup" : null)}
-        title="Document"
-      >
-        <div className="px-1 py-1">
-          <PageSetupPanel document={document} />
-          <MarginsPanel
-            document={document}
-            page={activePage}
-            onApply={patchPageMargins}
-          />
-        </div>
       </Sheet>
 
       <ExportDialog
