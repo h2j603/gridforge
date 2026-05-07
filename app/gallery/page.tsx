@@ -77,11 +77,11 @@ function DocCard({ doc }: { doc: DocumentSummary }) {
   return (
     <Link
       href={`/d/${doc.id}`}
-      className="group block overflow-hidden rounded-xl border border-rule bg-paper transition hover:-translate-y-0.5 hover:border-ink hover:shadow-md"
+      className="group block overflow-hidden rounded-xl border border-rule bg-paper transition hover:-translate-y-0.5 hover:border-accent hover:shadow-[0_10px_30px_-15px_rgba(132,204,22,0.4)]"
     >
-      <div className="grid aspect-[4/3] place-items-center bg-canvas p-6">
+      <div className="grid aspect-[4/3] place-items-center bg-canvas-soft p-6">
         <span
-          className="block bg-paper shadow-[0_2px_18px_rgba(14,14,12,0.08)] ring-1 ring-rule"
+          className="block bg-page shadow-[0_12px_28px_-18px_rgba(20,20,16,0.3)] ring-1 ring-rule"
           style={{
             width: ratio >= 1 ? "70%" : `${70 * ratio}%`,
             aspectRatio: `${ratio}`,

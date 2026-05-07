@@ -313,12 +313,13 @@ export function SlotLayer({
 
       {drawRect && (drawRect.w > 0 || drawRect.h > 0) ? (
         <div
-          className="pointer-events-none absolute border-2 border-dashed border-ink/70 bg-ink/5"
+          className="pointer-events-none absolute border-2 border-dashed bg-[rgba(163,230,53,0.1)]"
           style={{
             left: drawRect.x * rect.w,
             top: drawRect.y * rect.h,
             width: drawRect.w * rect.w,
             height: drawRect.h * rect.h,
+            borderColor: "var(--color-accent)",
           }}
         />
       ) : null}
@@ -355,11 +356,18 @@ function SlotBox({
       className={cn(
         "group cursor-move touch-none rounded-[2px] text-[10px]",
         selected
-          ? "bg-ink/15 ring-1 ring-ink"
-          : "bg-ink/5 ring-1 ring-ink/30 hover:ring-ink/60",
+          ? "bg-[rgba(163,230,53,0.12)] ring-1.5 ring-[var(--color-accent)]"
+          : "bg-black/5 ring-1 ring-black/30 hover:ring-black/55",
       )}
     >
-      <div className="absolute left-1 top-1 select-none rounded-sm bg-paper/85 px-1 font-medium text-ink">
+      <div
+        className={cn(
+          "absolute left-1 top-1 select-none rounded-sm px-1 font-medium",
+          selected
+            ? "bg-[var(--color-accent)] text-[var(--color-accent-ink)]"
+            : "bg-white/85 text-[var(--color-page-ink)]",
+        )}
+      >
         {slot.name}
       </div>
       {selected ? (
@@ -405,7 +413,10 @@ function Handle({
         placement[pos],
       )}
     >
-      <span className="block h-2 w-2 rounded-sm border border-ink bg-paper" />
+      <span
+        className="block h-2 w-2 rounded-sm border bg-white"
+        style={{ borderColor: "var(--color-accent)" }}
+      />
     </span>
   );
 }

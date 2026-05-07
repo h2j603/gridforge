@@ -35,9 +35,9 @@ export function GridGalleryClient({ grids }: Props) {
             <button
               type="button"
               onClick={() => setActive(g)}
-              className="group block w-full overflow-hidden rounded-xl border border-rule bg-paper text-left transition hover:-translate-y-0.5 hover:border-ink hover:shadow-md"
+              className="group block w-full overflow-hidden rounded-xl border border-rule bg-paper text-left transition hover:-translate-y-0.5 hover:border-accent hover:shadow-[0_10px_30px_-15px_rgba(132,204,22,0.4)]"
             >
-              <div className="grid aspect-[4/3] place-items-center bg-canvas p-6">
+              <div className="grid aspect-[4/3] place-items-center bg-canvas-soft p-6">
                 <GridPreview cols={g.cols} rows={g.rows} />
               </div>
               <div className="border-t border-rule px-4 py-3">
@@ -72,7 +72,7 @@ function GridPreview({ cols, rows }: { cols: number; rows: number }) {
         width="99"
         height="74"
         fill="white"
-        stroke="#c8c8c2"
+        stroke="#c8c7c0"
         strokeWidth="0.5"
       />
       {Array.from({ length: cols + 1 }, (_, i) => i).map((i) => (

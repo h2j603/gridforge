@@ -59,8 +59,8 @@ export function ViewPanel(p: Props) {
                 className={cn(
                   "h-9 rounded-full px-3.5 text-sm font-medium transition",
                   t.active
-                    ? "bg-ink text-paper"
-                    : "border border-rule bg-paper text-ink hover:border-ink",
+                    ? "bg-accent-soft text-accent shadow-[inset_0_0_0_1px_var(--color-accent)]"
+                    : "border border-rule bg-paper-soft text-ink hover:border-rule-strong",
                 )}
               >
                 {t.label}
@@ -69,7 +69,7 @@ export function ViewPanel(p: Props) {
           </div>
         </section>
       ))}
-      <p className="text-[11px] leading-snug text-ink-soft">
+      <p className="text-[11px] leading-snug text-ink-faint">
         Snap on: drawing into a page snaps slots to the grid cells. Off:
         every drag draws / moves freely. (Desktop: hold Alt for the
         opposite of the current snap setting.)

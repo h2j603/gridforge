@@ -19,13 +19,13 @@ export function SpreadStrip({ document, activeIndex, onSelect, onAdd }: Props) {
           type="button"
           onClick={() => onSelect(spread.index)}
           className={cn(
-            "flex h-12 min-w-16 flex-col items-center justify-center rounded border px-3 text-ink",
+            "flex h-12 min-w-16 flex-col items-center justify-center rounded border px-3 transition",
             spread.index === activeIndex
-              ? "border-ink bg-canvas"
-              : "border-rule bg-canvas hover:border-ink",
+              ? "border-accent bg-accent-soft text-ink"
+              : "border-rule bg-canvas-soft text-ink hover:border-rule-strong",
           )}
         >
-          <span className="text-[10px] uppercase tracking-wide text-ink-soft">
+          <span className="text-[10px] uppercase tracking-wide text-ink-faint">
             Spread
           </span>
           <span className="text-sm font-medium">{spread.index + 1}</span>
@@ -35,7 +35,7 @@ export function SpreadStrip({ document, activeIndex, onSelect, onAdd }: Props) {
         type="button"
         onClick={onAdd}
         title="Add spread"
-        className="flex h-12 w-10 items-center justify-center rounded border border-dashed border-rule text-ink-soft hover:border-ink hover:text-ink"
+        className="flex h-12 w-10 items-center justify-center rounded border border-dashed border-rule text-ink-soft hover:border-accent hover:text-accent"
         aria-label="Add spread"
       >
         +

@@ -46,8 +46,11 @@ function Tab({
       type="button"
       onClick={onClick}
       className={cn(
-        "flex flex-1 flex-col items-center justify-center gap-0.5 transition active:bg-canvas",
-        primary ? "text-ink" : "hover:text-ink",
+        "flex flex-1 flex-col items-center justify-center gap-0.5 transition",
+        "active:bg-paper-hover",
+        primary
+          ? "text-accent"
+          : "hover:text-ink",
       )}
     >
       <span className="grid h-5 w-5 place-items-center">{icon}</span>

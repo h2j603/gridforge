@@ -42,7 +42,7 @@ export function Toolbar(props: Props) {
         label="Slots"
       />
       <span className="mx-1 h-4 w-px bg-rule" />
-      <Button size="sm" variant="secondary" onClick={props.onExport}>
+      <Button size="sm" variant="primary" onClick={props.onExport}>
         Export
       </Button>
     </div>
@@ -63,8 +63,10 @@ function Toggle({
       type="button"
       onClick={onClick}
       className={cn(
-        "h-8 rounded px-2 text-xs",
-        active ? "bg-ink text-paper" : "text-ink hover:bg-canvas",
+        "h-8 rounded px-2 text-xs font-medium transition",
+        active
+          ? "bg-accent-soft text-accent shadow-[inset_0_0_0_1px_var(--color-accent)]"
+          : "text-ink-soft hover:bg-paper-soft hover:text-ink",
       )}
     >
       {label}
