@@ -99,7 +99,7 @@ export function PageBoard({
       ) : null}
 
       <figure
-        className="relative bg-paper shadow-[0_2px_24px_rgba(17,17,17,0.08)] ring-1 ring-rule"
+        className="relative bg-page text-page-ink shadow-[0_18px_36px_-22px_rgba(20,20,16,0.25)] ring-1 ring-rule-strong"
         style={{ width: wPx, height: hPx }}
       >
         {showMargins ? (
@@ -140,7 +140,7 @@ export function PageBoard({
           />
         ) : null}
 
-        <figcaption className="absolute -bottom-6 left-0 text-[10px] uppercase tracking-wide text-ink-soft">
+        <figcaption className="absolute -bottom-6 left-0 text-[10px] uppercase tracking-wide text-ink-faint">
           Page {page.page_number}
           {document.facing_pages ? ` · ${page.side}` : ""}
         </figcaption>

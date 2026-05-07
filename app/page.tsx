@@ -20,24 +20,25 @@ export default async function HomePage() {
   }
 
   return (
-    <div className="min-h-dvh">
+    <div className="min-h-dvh bg-canvas">
       <ConfigBanner configured={configured} />
 
-      <header className="border-b border-rule bg-paper/60 backdrop-blur">
+      <header className="sticky top-0 z-20 border-b border-rule bg-canvas/85 backdrop-blur">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-5 py-3 sm:px-8">
-          <Link href="/" className="text-sm font-semibold tracking-tight">
+          <Link href="/" className="flex items-center gap-2 text-sm font-semibold tracking-tight">
+            <LogoMark />
             GridForge
           </Link>
           <nav className="flex items-center gap-1 text-sm">
             <Link
               href="/gallery"
-              className="rounded-md px-2.5 py-1.5 text-ink-soft hover:bg-canvas hover:text-ink"
+              className="rounded-md px-2.5 py-1.5 text-ink-soft hover:bg-paper-soft hover:text-ink"
             >
               Gallery
             </Link>
             <Link
               href="/gallery/grids"
-              className="rounded-md px-2.5 py-1.5 text-ink-soft hover:bg-canvas hover:text-ink"
+              className="rounded-md px-2.5 py-1.5 text-ink-soft hover:bg-paper-soft hover:text-ink"
             >
               Grids
             </Link>
@@ -51,10 +52,11 @@ export default async function HomePage() {
       <main className="mx-auto max-w-5xl px-5 sm:px-8">
         <section className="py-12 sm:py-20">
           <div className="max-w-2xl">
-            <p className="mb-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-faint">
+            <p className="mb-4 inline-flex items-center gap-2 rounded-full border border-rule bg-paper px-3 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-ink-soft">
+              <span className="h-1.5 w-1.5 rounded-full bg-accent" />
               Web ↔ Print, one source
             </p>
-            <h1 className="text-balance text-4xl font-semibold tracking-tight sm:text-5xl">
+            <h1 className="text-balance text-4xl font-semibold leading-[1.1] tracking-tight sm:text-5xl">
               Lay out a Müller-Brockmann grid.{" "}
               <span className="text-ink-soft">
                 Export SVG, PNG, and responsive CSS from the same spec.
@@ -85,7 +87,7 @@ export default async function HomePage() {
             </h2>
             <Link
               href="/gallery"
-              className="text-xs text-ink-soft underline-offset-4 hover:underline"
+              className="text-xs text-ink-soft underline-offset-4 hover:text-accent hover:underline"
             >
               All →
             </Link>
@@ -109,7 +111,7 @@ export default async function HomePage() {
           <span>GridForge · v1</span>
           <a
             href="https://github.com/h2j603/gridforge"
-            className="underline-offset-4 hover:underline"
+            className="underline-offset-4 hover:text-accent hover:underline"
             target="_blank"
             rel="noreferrer"
           >
@@ -121,16 +123,38 @@ export default async function HomePage() {
   );
 }
 
+function LogoMark() {
+  return (
+    <span
+      aria-hidden
+      className="grid h-6 w-6 place-items-center rounded-md bg-accent text-[var(--color-accent-ink)]"
+    >
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+        <path
+          d="M3 3h8v8H3z"
+          stroke="currentColor"
+          strokeWidth="1.4"
+        />
+        <path
+          d="M3 7h8M7 3v8"
+          stroke="currentColor"
+          strokeWidth="1.4"
+        />
+      </svg>
+    </span>
+  );
+}
+
 function DocCard({ doc }: { doc: DocumentSummary }) {
   const ratio = Math.max(0.4, Math.min(2.5, doc.width / doc.height));
   return (
     <Link
       href={`/d/${doc.id}`}
-      className="group block overflow-hidden rounded-xl border border-rule bg-paper transition hover:-translate-y-0.5 hover:border-ink hover:shadow-md"
+      className="group block overflow-hidden rounded-xl border border-rule bg-paper transition hover:-translate-y-0.5 hover:border-accent hover:shadow-[0_10px_30px_-15px_rgba(132,204,22,0.4)]"
     >
-      <div className="grid aspect-[4/3] place-items-center bg-canvas p-6">
+      <div className="grid aspect-[4/3] place-items-center bg-canvas-soft p-6">
         <span
-          className="block bg-paper shadow-[0_2px_18px_rgba(14,14,12,0.08)] ring-1 ring-rule"
+          className="block bg-page shadow-[0_12px_28px_-18px_rgba(20,20,16,0.3)] ring-1 ring-rule"
           style={{
             width: ratio >= 1 ? "70%" : `${70 * ratio}%`,
             aspectRatio: `${ratio}`,
@@ -138,7 +162,7 @@ function DocCard({ doc }: { doc: DocumentSummary }) {
         />
       </div>
       <div className="border-t border-rule px-4 py-3">
-        <div className="text-sm font-medium">{doc.name}</div>
+        <div className="text-sm font-medium text-ink">{doc.name}</div>
         <div className="mt-0.5 text-xs text-ink-soft">
           {fmt(doc.width)} × {fmt(doc.height)} {doc.unit} · {doc.orientation}
           {doc.facing_pages ? " · facing" : ""}
@@ -167,42 +191,13 @@ function HeroPreview() {
   return (
     <div className="mt-12 hidden sm:block" aria-hidden>
       <div className="relative mx-auto max-w-3xl">
-        <div className="absolute inset-x-8 -top-2 h-[260px] rounded-2xl bg-paper shadow-[0_30px_60px_-30px_rgba(14,14,12,0.25)] ring-1 ring-rule" />
+        <div className="absolute inset-x-8 -top-2 h-[260px] rounded-2xl bg-paper shadow-[0_30px_60px_-30px_rgba(20,20,16,0.25)] ring-1 ring-rule" />
         <svg
           viewBox="0 0 800 260"
           className="relative block w-full"
           role="presentation"
         >
-          <defs>
-            <pattern
-              id="gridlines"
-              width="50"
-              height="50"
-              patternUnits="userSpaceOnUse"
-            >
-              <path
-                d="M 50 0 L 0 0 0 50"
-                fill="none"
-                stroke="rgba(14,14,12,0.1)"
-                strokeWidth="0.5"
-              />
-            </pattern>
-          </defs>
-          <rect
-            x="40"
-            y="20"
-            width="720"
-            height="220"
-            fill="white"
-            stroke="#e1e1dc"
-          />
-          <rect
-            x="80"
-            y="50"
-            width="640"
-            height="160"
-            fill="url(#gridlines)"
-          />
+          <rect x="40" y="20" width="720" height="220" fill="#ffffff" />
           {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((i) => (
             <line
               key={i}
@@ -210,35 +205,40 @@ function HeroPreview() {
               x2={80 + i * (640 / 12)}
               y1={50}
               y2={210}
-              stroke="rgba(14,14,12,0.15)"
+              stroke="rgba(17,17,17,0.18)"
               strokeWidth="0.6"
             />
           ))}
+          <line x1="80" y1="50" x2="720" y2="50" stroke="rgba(17,17,17,0.18)" strokeWidth="0.6" />
+          <line x1="80" y1="210" x2="720" y2="210" stroke="rgba(17,17,17,0.18)" strokeWidth="0.6" />
+          {/* heading */}
           <rect
             x="80"
             y="50"
             width={(640 / 12) * 8}
             height="42"
-            fill="rgba(14,14,12,0.08)"
-            stroke="#0e0e0c"
+            fill="rgba(17,17,17,0.06)"
+            stroke="rgba(17,17,17,0.55)"
             strokeWidth="0.6"
           />
+          {/* image (lime accent) */}
           <rect
             x={80 + (640 / 12) * 8}
             y="50"
             width={(640 / 12) * 4}
             height={120}
-            fill="rgba(31,77,255,0.08)"
-            stroke="#1f4dff"
-            strokeWidth="0.6"
+            fill="rgba(163,230,53,0.12)"
+            stroke="#a3e635"
+            strokeWidth="1.1"
           />
+          {/* body */}
           <rect
             x={80}
             y={50 + 50}
             width={(640 / 12) * 8}
             height={110}
-            fill="rgba(14,14,12,0.04)"
-            stroke="#0e0e0c"
+            fill="rgba(17,17,17,0.04)"
+            stroke="rgba(17,17,17,0.55)"
             strokeWidth="0.6"
           />
         </svg>

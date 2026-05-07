@@ -23,8 +23,8 @@ function Row({
 }) {
   return (
     <div className="flex items-center justify-between text-sm">
-      <span className="text-ink-soft">{label}</span>
-      <span className="font-medium">{children}</span>
+      <span className="text-ink-faint">{label}</span>
+      <span className="font-medium text-ink">{children}</span>
     </div>
   );
 }

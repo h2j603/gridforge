@@ -1,17 +1,30 @@
 @import "tailwindcss";
 
 @theme {
-  --color-canvas: #f4f4f0;
-  --color-canvas-soft: #fafaf7;
-  --color-ink: #0e0e0c;
-  --color-ink-soft: #5a5a55;
-  --color-ink-faint: #8a8a82;
+  /* Obsidian-light surfaces (warm off-white) */
+  --color-canvas: #f4f3ef;
+  --color-canvas-soft: #ebeae5;
   --color-paper: #ffffff;
-  --color-rule: #e1e1dc;
-  --color-rule-strong: #c8c8c2;
-  --color-grid-dark: rgba(14, 14, 12, 0.85);
-  --color-grid-light: rgba(14, 14, 12, 0.18);
-  --color-accent: #1f4dff;
+  --color-paper-soft: #faf9f6;
+  --color-paper-hover: #f1efea;
+  --color-ink: #181818;
+  --color-ink-soft: #555550;
+  --color-ink-faint: #8a8a82;
+  --color-rule: #e3e2dc;
+  --color-rule-strong: #c8c7c0;
+
+  /* Lime accent */
+  --color-accent: #84cc16; /* lime-500 — good contrast on white */
+  --color-accent-strong: #65a30d; /* lime-600 — for text/hover */
+  --color-accent-ink: #1a2607; /* dark green text on accent fill */
+  --color-accent-soft: rgba(132, 204, 22, 0.14);
+
+  /* Print page (stays white — accuracy matters for export) */
+  --color-page: #ffffff;
+  --color-page-ink: #111111;
+  --color-grid-dark: rgba(17, 17, 17, 0.85);
+  --color-grid-light: rgba(17, 17, 17, 0.18);
+
   --font-sans: "Inter", "Pretendard Variable", "Pretendard",
     ui-sans-serif, system-ui, -apple-system, "Segoe UI", "Helvetica Neue",
     "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
@@ -25,6 +38,7 @@ body {
 
 html {
   -webkit-text-size-adjust: 100%;
+  color-scheme: light;
 }
 
 body {
@@ -41,17 +55,17 @@ button {
   cursor: pointer;
 }
 
+::selection {
+  background: var(--color-accent);
+  color: var(--color-accent-ink);
+}
+
 input,
 select,
 textarea {
   font: inherit;
-}
-
-/* iOS Safari: prevent automatic font enlargement on rotate. */
-input,
-select,
-textarea {
-  font-size: 16px; /* avoids zoom-on-focus on iOS */
+  /* avoid iOS auto zoom on focus */
+  font-size: 16px;
 }
 
 @media (min-width: 640px) {
@@ -62,28 +76,22 @@ textarea {
   }
 }
 
-/* Subtle radix dialog/sheet animation hooks */
-@keyframes gf-fade-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+/* Subtle scrollbars */
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
 }
-@keyframes gf-slide-up {
-  from {
-    transform: translateY(100%);
-  }
-  to {
-    transform: translateY(0);
-  }
+*::-webkit-scrollbar-thumb {
+  background: var(--color-rule-strong);
+  border-radius: 999px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: #a3a39c;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 [data-radix-popper-content-wrapper] {
   outline: none;
-}
-
-[data-state="open"][data-radix-dialog-overlay] {
-  animation: gf-fade-in 120ms ease;
 }
