@@ -20,7 +20,7 @@ interface Props {
 
 export function MobileNav({ onOpen, onExport }: Props) {
   return (
-    <nav className="flex h-14 shrink-0 items-stretch border-t border-rule bg-paper text-[10px] font-medium uppercase tracking-wide text-ink-soft md:hidden">
+    <nav className="flex h-14 shrink-0 items-stretch border-t border-rule bg-mint-soft text-[10px] font-medium uppercase tracking-wide text-ink-soft md:hidden">
       <Tab label="Pages" onClick={() => onOpen("pages")} icon={<IconPages />} />
       <Tab label="Grid" onClick={() => onOpen("grid")} icon={<IconGrid />} />
       <Tab label="Slots" onClick={() => onOpen("slot")} icon={<IconSlot />} />
@@ -54,7 +54,7 @@ function Tab({
         "flex flex-1 flex-col items-center justify-center gap-0.5 transition",
         "active:bg-paper-hover",
         primary
-          ? "text-accent"
+          ? "text-[var(--color-accent-strong)]"
           : "hover:text-ink",
       )}
     >

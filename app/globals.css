@@ -1,23 +1,36 @@
 @import "tailwindcss";
 
 @theme {
-  /* Obsidian-light surfaces (warm off-white) */
-  --color-canvas: #f4f3ef;
-  --color-canvas-soft: #ebeae5;
+  /* Warm cream body / window background */
+  --color-canvas: #f3f2ec;
+  --color-canvas-soft: #ebeae3;
+
+  /* Pale mint surfaces (sidebars, panels) */
   --color-paper: #ffffff;
-  --color-paper-soft: #faf9f6;
+  --color-paper-soft: #faf9f3;
   --color-paper-hover: #f1efea;
-  --color-ink: #181818;
+  --color-mint: #c8f0d1;
+  --color-mint-soft: #ddf6e2;
+  --color-mint-strong: #a3e2b1;
+
+  /* Vivid green — brand color, used for canvas backdrop and feature blocks */
+  --color-vivid: #18d650;
+  --color-vivid-strong: #10b340;
+  --color-vivid-ink: #052e10;
+  --color-vivid-soft: rgba(24, 214, 80, 0.16);
+
+  /* Type ramp */
+  --color-ink: #181816;
   --color-ink-soft: #555550;
   --color-ink-faint: #8a8a82;
-  --color-rule: #e3e2dc;
-  --color-rule-strong: #c8c7c0;
+  --color-rule: #e1ddd2;
+  --color-rule-strong: #c5c2b6;
 
-  /* Lime accent — vivid, high saturation */
-  --color-accent: #a3ff12;        /* bright neon lime — chip / fill / border */
-  --color-accent-strong: #58a300; /* darker lime — text on light backgrounds */
-  --color-accent-ink: #0a1502;    /* near-black green — text on lime fill */
-  --color-accent-soft: rgba(163, 255, 18, 0.20);
+  /* Active / selected — orange contrast against the green */
+  --color-accent: #ff5c2e;
+  --color-accent-strong: #d83a08;
+  --color-accent-ink: #ffffff;
+  --color-accent-soft: rgba(255, 92, 46, 0.14);
 
   /* Print page (stays white — accuracy matters for export) */
   --color-page: #ffffff;
@@ -64,7 +77,6 @@ input,
 select,
 textarea {
   font: inherit;
-  /* avoid iOS auto zoom on focus */
   font-size: 16px;
 }
 
@@ -76,7 +88,6 @@ textarea {
   }
 }
 
-/* Subtle scrollbars */
 *::-webkit-scrollbar {
   width: 10px;
   height: 10px;

@@ -22,7 +22,7 @@ export default async function GridGalleryPage() {
   return (
     <div className="min-h-dvh">
       <ConfigBanner configured={configured} />
-      <header className="border-b border-rule bg-paper">
+      <header className="border-b border-rule bg-mint-soft">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3 sm:px-8">
           <Link href="/" className="text-sm font-semibold tracking-tight">
             GridForge
@@ -30,7 +30,7 @@ export default async function GridGalleryPage() {
           <nav className="flex items-center gap-1 text-sm">
             <Link
               href="/gallery"
-              className="rounded-md px-2.5 py-1.5 text-ink-soft hover:bg-canvas hover:text-ink"
+              className="rounded-md px-2.5 py-1.5 text-ink-soft hover:bg-paper hover:text-ink"
             >
               Documents
             </Link>

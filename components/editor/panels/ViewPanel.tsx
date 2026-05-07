@@ -59,8 +59,8 @@ export function ViewPanel(p: Props) {
                 className={cn(
                   "h-9 rounded-full px-3.5 text-sm font-medium transition",
                   t.active
-                    ? "bg-accent-soft text-accent-strong shadow-[inset_0_0_0_1px_var(--color-accent)]"
-                    : "border border-rule bg-paper-soft text-ink hover:border-rule-strong",
+                    ? "bg-accent-soft text-[var(--color-accent-strong)] shadow-[inset_0_0_0_1px_var(--color-accent)]"
+                    : "border border-rule bg-paper text-ink hover:border-rule-strong",
                 )}
               >
                 {t.label}

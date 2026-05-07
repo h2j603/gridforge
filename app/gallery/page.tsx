@@ -22,7 +22,7 @@ export default async function GalleryPage() {
   return (
     <div className="min-h-dvh">
       <ConfigBanner configured={configured} />
-      <header className="border-b border-rule bg-paper">
+      <header className="border-b border-rule bg-mint-soft">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3 sm:px-8">
           <Link href="/" className="text-sm font-semibold tracking-tight">
             GridForge
@@ -30,7 +30,7 @@ export default async function GalleryPage() {
           <nav className="flex items-center gap-1 text-sm">
             <Link
               href="/gallery/grids"
-              className="rounded-md px-2.5 py-1.5 text-ink-soft hover:bg-canvas hover:text-ink"
+              className="rounded-md px-2.5 py-1.5 text-ink-soft hover:bg-paper hover:text-ink"
             >
               Grids
             </Link>
@@ -77,11 +77,11 @@ function DocCard({ doc }: { doc: DocumentSummary }) {
   return (
     <Link
       href={`/d/${doc.id}`}
-      className="group block overflow-hidden rounded-xl border border-rule bg-paper transition hover:-translate-y-0.5 hover:border-accent hover:shadow-[0_10px_30px_-15px_rgba(132,204,22,0.4)]"
+      className="group block overflow-hidden rounded-2xl border border-rule bg-paper transition hover:-translate-y-0.5 hover:border-[var(--color-accent)] hover:shadow-[0_10px_30px_-15px_rgba(255,92,46,0.4)]"
     >
-      <div className="grid aspect-[4/3] place-items-center bg-canvas-soft p-6">
+      <div className="grid aspect-[4/3] place-items-center bg-mint-soft p-6">
         <span
-          className="block bg-page shadow-[0_12px_28px_-18px_rgba(20,20,16,0.3)] ring-1 ring-rule"
+          className="block bg-page shadow-[0_12px_28px_-18px_rgba(5,46,16,0.35)] ring-1 ring-rule"
           style={{
             width: ratio >= 1 ? "70%" : `${70 * ratio}%`,
             aspectRatio: `${ratio}`,

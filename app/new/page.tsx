@@ -23,7 +23,7 @@ export default function NewDocumentPage() {
           Set page dimensions and orientation. Margins, grid, slots, and
           baseline can all be tuned in the editor afterwards.
         </p>
-        <div className="rounded-xl border border-rule bg-paper p-5 sm:p-6">
+        <div className="rounded-2xl border border-rule bg-paper p-5 sm:p-6">
           <NewDocumentForm />
         </div>
       </div>

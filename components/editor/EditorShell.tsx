@@ -136,7 +136,7 @@ export function EditorShell({ document: initial }: { document: Document }) {
 
   return (
     <div className="flex h-dvh flex-col bg-canvas">
-      <header className="flex h-12 shrink-0 items-center justify-between border-b border-rule bg-paper px-3 md:px-4">
+      <header className="flex h-12 shrink-0 items-center justify-between border-b border-rule bg-mint-soft px-3 md:px-4">
         <div className="flex min-w-0 items-center gap-2 md:gap-3">
           <a
             href="/"
@@ -169,7 +169,7 @@ export function EditorShell({ document: initial }: { document: Document }) {
 
       <div className="flex min-h-0 flex-1">
         {/* Desktop left sidebar */}
-        <aside className="hidden w-56 shrink-0 border-r border-rule bg-paper md:flex md:flex-col">
+        <aside className="hidden w-56 shrink-0 border-r border-rule bg-mint-soft md:flex md:flex-col">
           <div className="border-b border-rule px-3 py-3 text-[10px] font-semibold uppercase tracking-wide text-ink-soft">
             Pages
           </div>
@@ -184,10 +184,10 @@ export function EditorShell({ document: initial }: { document: Document }) {
                     setPage(p.id);
                   }}
                   className={
-                    "flex w-full items-center justify-between rounded px-2 py-1.5 text-left text-sm" +
+                    "flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-sm transition " +
                     (p.id === activePage?.id
-                      ? " bg-canvas font-medium text-ink"
-                      : " text-ink-soft hover:bg-canvas hover:text-ink")
+                      ? "bg-accent-soft font-medium text-[var(--color-accent-strong)] shadow-[inset_3px_0_0_0_var(--color-accent)]"
+                      : "text-ink-soft hover:bg-paper hover:text-ink")
                   }
                 >
                   <span>Page {p.page_number}</span>
@@ -232,7 +232,7 @@ export function EditorShell({ document: initial }: { document: Document }) {
         </main>
 
         {/* Desktop right panel */}
-        <aside className="hidden w-72 shrink-0 overflow-y-auto border-l border-rule bg-paper md:block">
+        <aside className="hidden w-72 shrink-0 overflow-y-auto border-l border-rule bg-mint-soft md:block">
           <PageSetupPanel document={document} />
           <MarginsPanel
             document={document}

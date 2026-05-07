@@ -104,7 +104,7 @@ export function Canvas({
   return (
     <div
       ref={containerRef}
-      className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-canvas px-2 py-4 sm:px-8 sm:py-10"
+      className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-vivid px-2 py-4 sm:px-8 sm:py-10"
     >
       {!spread ? (
         <p className="text-sm text-ink-soft">No spreads yet.</p>
